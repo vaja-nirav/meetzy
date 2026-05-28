@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Meetzy — API Test</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; background: #0f0f0f; color: #eee; }
+    h1 { color: #7c6af7; margin-bottom: 4px; }
+    h3 { color: #7c6af7; margin: 20px 0 10px; }
+    p  { color: #999; font-size: 13px; margin-bottom: 16px; }
+    hr { border-color: #2a2a2a; margin: 24px 0; }
+    label { display: block; font-size: 12px; color: #999; margin-bottom: 4px; }
+    input, select {
+      width: 100%; padding: 10px 12px; background: #1e1e1e; color: #eee;
+      border: 1px solid #333; border-radius: 8px; font-size: 14px; outline: none;
+    }
+    input:focus, select:focus { border-color: #7c6af7; }
+    textarea {
+      width: 100%; background: #1e1e1e; color: #a8ff78;
+      border: 1px solid #333; padding: 10px; border-radius: 8px; font-size: 12px;
+    }
+    .field { margin-bottom: 14px; }
+    .btn {
+      padding: 10px 20px; border: none; border-radius: 8px;
+      cursor: pointer; font-size: 14px; font-weight: 600; margin: 4px 4px 4px 0;
+    }
+    .btn-primary  { background: #7c6af7; color: #fff; }
+    .btn-primary:hover { background: #6456d6; }
+    .btn-secondary { background: #2a2a2a; color: #ccc; }
+    .btn-secondary:hover { background: #333; }
+    .btn-success  { background: #2e7d32; color: #fff; }
+    .btn-success:hover { background: #388e3c; }
+    .gender-row { display: flex; gap: 12px; }
+    .gender-btn {
+      flex: 1; padding: 14px; border: 2px solid #333; background: #1e1e1e;
+      color: #ccc; border-radius: 10px; cursor: pointer; font-size: 14px;
+      text-align: center; transition: all .2s;
+    }
+    .gender-btn:hover { border-color: #7c6af7; }
+    .gender-btn.active { border-color: #7c6af7; background: #2a2040; color: #fff; }
+    pre {
+      background: #1e1e1e; padding: 16px; border-radius: 8px;
+      overflow: auto; font-size: 12px; color: #a8ff78;
+      border: 1px solid #2a2a2a; white-space: pre-wrap; word-break: break-all;
+    }
+    .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; margin-left: 8px; }
+    .badge-green { background: #1b5e20; color: #a5d6a7; }
+    .badge-red   { background: #b71c1c; color: #ffcdd2; }
+    .section { background: #161616; border: 1px solid #2a2a2a; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+    .hidden { display: none; }
+    .base-row { display: flex; gap: 8px; align-items: flex-end; }
+    .base-row input { flex: 1; }
+    .api-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  </style>
+</head>
+<body>
+
+<h1>🎥 Meetzy — API Test</h1>
+<p>Step-by-step: Google Login → Profile Setup → Test all endpoints</p>
+
+<!-- BASE URL -->
+<div class="section">
+  <label>API Base URL</label>
+  <input id="baseUrl" value="http://localhost:3001" />
+</div>
+
+<!-- STEP 1: GOOGLE LOGIN -->
+<div class="section" id="step1">
+  <h3>Step 1 — Sign in with Google</h3>
+  <p>Click the button below to get a Google ID token, then POST it to /auth/google</p>
+
+  <div id="g_id_onload"
+    data-client_id="541490843172-n1sramgnaid6dhkg03pvrlve3v4l3pcq.apps.googleusercontent.com"
+    data-callback="handleCredentialResponse"
+    data-auto_prompt="false">
+  </div>
+  <div class="g_id_signin" data-type="standard" data-size="large"></div>
+
+  <br>
+  <div class="field">
+    <label>Google ID Token (auto-filled after sign-in)</label>
+    <textarea id="idToken" rows="3" placeholder="Sign in above to get token..."></textarea>
+  </div>
+
+  <button class="btn btn-primary" onclick="testGoogleLogin()">▶ POST /auth/google</button>
+
+  <div class="field" style="margin-top:14px">
+    <label>Response</label>
+    <pre id="loginResponse">— waiting —</pre>
+  </div>
+</div>
+
+<!-- STEP 2: PROFILE SETUP -->
+<div class="section hidden" id="step2">
+  <h3>Step 2 — Profile Setup <span class="badge badge-red" id="setupBadge">Required</span></h3>
+  <p>POST /profile/setup — call this when user clicks "Get Started"</p>
+
+  <div class="field">
+    <label>Display Name *</label>
+    <input id="setupName" maxlength="20" placeholder="e.g. Alex" />
+  </div>
+
+  <div class="field">
+    <label>Country * <span id="countryLoadStatus" style="color:#666;font-size:11px">Loading from API...</span></label>
+    <select id="setupCountry">
+      <option value="">— loading countries —</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>Gender * (permanent — cannot be changed later)</label>
+    <div class="gender-row">
+      <div class="gender-btn" id="genderMale" onclick="selectGender('male')">👨 Male</div>
+      <div class="gender-btn" id="genderFemale" onclick="selectGender('female')">👩 Female</div>
+    </div>
+    <input type="hidden" id="setupGender" value="" />
+  </div>
+
+  <button class="btn btn-success" onclick="submitProfileSetup()">✅ POST /profile/setup (Get Started)</button>
+
+  <div class="field" style="margin-top:14px">
+    <label>Response</label>
+    <pre id="setupResponse">—</pre>
+  </div>
+</div>
+
+<!-- STEP 3: TEST OTHER APIS -->
+<div class="section hidden" id="step3">
+  <h3>Step 3 — Test Protected APIs <span class="badge badge-green">Authorized</span></h3>
+
+  <div class="field">
+    <label>Access Token (auto-filled)</label>
+    <textarea id="accessToken" rows="2"></textarea>
+  </div>
+
+  <div class="api-grid">
+    <button class="btn btn-secondary" onclick="call('GET','/auth/me')">GET /auth/me</button>
+    <button class="btn btn-secondary" onclick="call('GET','/profile/me')">GET /profile/me</button>
+    <button class="btn btn-secondary" onclick="call('GET','/wallet/balance')">GET /wallet/balance</button>
+    <button class="btn btn-secondary" onclick="call('GET','/wallet/transactions')">GET /wallet/transactions</button>
+    <button class="btn btn-secondary" onclick="call('GET','/users/online')">GET /users/online</button>
+    <button class="btn btn-secondary" onclick="call('GET','/gifts/list')">GET /gifts/list</button>
+    <button class="btn btn-secondary" onclick="call('GET','/chat/conversations')">GET /chat/conversations</button>
+  </div>
+
+  <div class="field" style="margin-top:14px">
+    <label>Response</label>
+    <pre id="apiResponse">— click an endpoint above —</pre>
+  </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script>
+  let selectedGender = '';
+
+  // Load all countries from API on page load
+  async function loadCountries() {
+    const base = document.getElementById('baseUrl').value.trim();
+    try {
+      const res  = await fetch(`${base}/countries`);
+      const data = await res.json();
+      const sel  = document.getElementById('setupCountry');
+      sel.innerHTML = '<option value="">— select country —</option>';
+      data.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${getFlagEmoji(c.code)} ${c.name}`;
+        sel.appendChild(opt);
+      });
+      document.getElementById('countryLoadStatus').textContent = `(${data.length} countries loaded)`;
+    } catch (e) {
+      document.getElementById('countryLoadStatus').textContent = '⚠ Could not load — is the server running?';
+    }
+  }
+
+  // Convert ISO code to flag emoji
+  function getFlagEmoji(code) {
+    return code.toUpperCase().replace(/./g, c =>
+      String.fromCodePoint(0x1F1E6 - 65 + c.charCodeAt(0))
+    );
+  }
+
+  // Reload countries when base URL changes
+  document.addEventListener('DOMContentLoaded', () => {
+    loadCountries();
+    document.getElementById('baseUrl').addEventListener('change', loadCountries);
+  });
+
+  function handleCredentialResponse(response) {
+    document.getElementById('idToken').value = response.credential;
+    document.getElementById('loginResponse').textContent = '✅ ID token received — click "POST /auth/google"';
+  }
+
+  function selectGender(g) {
+    selectedGender = g;
+    document.getElementById('setupGender').value = g;
+    document.getElementById('genderMale').classList.toggle('active', g === 'male');
+    document.getElementById('genderFemale').classList.toggle('active', g === 'female');
+  }
+
+  async function testGoogleLogin() {
+    const idToken = document.getElementById('idToken').value.trim();
+    const base    = document.getElementById('baseUrl').value.trim();
+    if (!idToken) { alert('Sign in with Google first.'); return; }
+
+    document.getElementById('loginResponse').textContent = 'Loading...';
+    try {
+      const res  = await fetch(`${base}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
+      const data = await res.json();
+      document.getElementById('loginResponse').textContent = JSON.stringify(data, null, 2);
+
+      if (data.accessToken) {
+        document.getElementById('accessToken').value = data.accessToken;
+        document.getElementById('step3').classList.remove('hidden');
+
+        // Show setup form if profile not yet complete
+        if (!data.isProfileComplete) {
+          document.getElementById('step2').classList.remove('hidden');
+          document.getElementById('setupBadge').textContent = data.isNewUser ? 'New User — Required' : 'Incomplete';
+        } else {
+          document.getElementById('step2').classList.remove('hidden');
+          document.getElementById('setupBadge').textContent = 'Already Complete';
+          document.getElementById('setupBadge').className = 'badge badge-green';
+        }
+      }
+    } catch (e) {
+      document.getElementById('loginResponse').textContent = '❌ Error: ' + e.message;
+    }
+  }
+
+  async function submitProfileSetup() {
+    const name      = document.getElementById('setupName').value.trim();
+    const countryId = parseInt(document.getElementById('setupCountry').value);
+    const gender    = document.getElementById('setupGender').value;
+    const token     = document.getElementById('accessToken').value.trim();
+    const base      = document.getElementById('baseUrl').value.trim();
+
+    if (!name)           { alert('Enter a display name.'); return; }
+    if (!countryId)      { alert('Select a country.'); return; }
+    if (!gender)         { alert('Select a gender.'); return; }
+    if (!token)          { alert('Login with Google first.'); return; }
+
+    document.getElementById('setupResponse').textContent = 'Loading...';
+    try {
+      const res  = await fetch(`${base}/profile/setup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ displayName: name, countryId, gender }),
+      });
+      const data = await res.json();
+      document.getElementById('setupResponse').textContent = JSON.stringify(data, null, 2);
+
+      if (data.isProfileComplete) {
+        document.getElementById('setupBadge').textContent = '✅ Complete';
+        document.getElementById('setupBadge').className = 'badge badge-green';
+      }
+    } catch (e) {
+      document.getElementById('setupResponse').textContent = '❌ Error: ' + e.message;
+    }
+  }
+
+  async function call(method, path) {
+    const base  = document.getElementById('baseUrl').value.trim();
+    const token = document.getElementById('accessToken').value.trim();
+    document.getElementById('apiResponse').textContent = 'Loading...';
+    try {
+      const res  = await fetch(`${base}${path}`, {
+        method,
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      document.getElementById('apiResponse').textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      document.getElementById('apiResponse').textContent = '❌ ' + e.message;
+    }
+  }
+</script>
+</body>
+</html>
