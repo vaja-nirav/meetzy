@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RefreshTokenDto } from './dto/google-auth.dto';
@@ -11,6 +11,15 @@ import { User } from '../users/entities/user.entity';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('check-account')
+  @ApiOperation({ summary: 'Check if an account exists by email or googleId' })
+  async checkAccount(
+    @Query('email') email?: string,
+    @Query('googleId') googleId?: string,
+  ) {
+    return this.authService.checkAccountStatus(email, googleId);
+  }
 
   @Post('login')
   @ApiOperation({

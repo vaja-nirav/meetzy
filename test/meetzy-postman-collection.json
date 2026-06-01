@@ -108,6 +108,37 @@
             "description": "One API for all 3 Flutter scenarios. token_id is always required. All other fields are optional — remove them when not needed.\n\n──────────────────────────────────────────\nUSAGE GUIDE\n──────────────────────────────────────────\n\nScenario A — Login Screen (new or returning):\nSend only token_id. Remove all other fields.\n→ New user:      isProfileComplete: false → show Profile Setup Screen\n→ Returning user: isProfileComplete: true  → go to Home Screen\n\nScenario B — Profile Setup Screen:\nSend token_id + display_name + gender + country_name + country_code.\n→ Backend saves profile, isProfileComplete: true → go to Home Screen\n\n──────────────────────────────────────────\nFLUTTER NAVIGATION RULE\n──────────────────────────────────────────\nif (res.data.user.isProfileComplete == false) → Profile Setup Screen\nif (res.data.user.isProfileComplete == true)  → Home Screen\n\n──────────────────────────────────────────\nEXPECTED RESPONSE\n──────────────────────────────────────────\n```json\n{\n  \"success\": true,\n  \"isNewUser\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"accessToken\": \"eyJhbG...\",\n    \"refreshToken\": \"eyJhbG...\",\n    \"expiresIn\": 604800,\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"nirav@gmail.com\",\n      \"displayName\": \"John Doe\",\n      \"photoUrl\": \"https://...\",\n      \"gender\": \"male\",\n      \"countryName\": \"India\",\n      \"countryCode\": \"IN\",\n      \"isVip\": false,\n      \"isOnline\": true,\n      \"isProfileComplete\": false,\n      \"walletBalance\": 0,\n      \"createdAt\": \"2026-06-01T00:00:00.000Z\"\n    }\n  }\n}\n```"
           },
           "response": []
+        },
+        {
+          "name": "Check Account Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/check-account?email=nirav@gmail.com&googleId=111590874068048869509",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "check-account"
+              ],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "nirav@gmail.com",
+                  "description": "Optional email to check"
+                },
+                {
+                  "key": "googleId",
+                  "value": "111590874068048869509",
+                  "description": "Optional googleId to check"
+                }
+              ]
+            },
+            "description": "Checks if an account already exists in the database by email or Google ID. Returns { exists: true/false, isProfileComplete: true/false }."
+          },
+          "response": []
         }
       ]
     },
