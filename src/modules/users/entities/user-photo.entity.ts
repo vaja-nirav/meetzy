@@ -10,21 +10,21 @@ import {
 @Entity('user_photos')
 export class UserPhoto {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ type: 'int' })
-  userId: number;
+  userId!: number;
 
   @Column({ type: 'varchar', length: 500 })
-  url: string;
+  url!: string;
 
   @Column({ type: 'int', default: 0 })
-  sortOrder: number;
+  sortOrder!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @ManyToOne('User', 'photos', { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
+  @JoinColumn({ name: 'user_id' })
   user: any;
 }

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
 import { UsersService } from '../users/users.service';
 import { User } from '../users/entities/user.entity';
+import { UnifiedLoginDto } from './dto/unified-login.dto';
 
 @Injectable()
 export class AuthService {
@@ -40,15 +41,27 @@ export class AuthService {
     if (!googlePayload) throw new UnauthorizedException('Empty token payload');
 
     let user = await this.usersService.findByGoogleId(googlePayload.sub);
-    const isNewUser = !user;
+    let isNewUser = false;
 
     if (!user) {
-      user = await this.usersService.create({
-        googleId: googlePayload.sub,
-        email: googlePayload.email ?? '',
-        displayName: googlePayload.name ?? 'User',
-        photoUrl: googlePayload.picture,
-      });
+      // Check if a user with this email already exists in the system
+      const existingUserByEmail = await this.usersService.findByEmail(googlePayload.email ?? '');
+      if (existingUserByEmail) {
+        user = existingUserByEmail;
+        // Link their Google ID if it hasn't been linked yet
+        if (!user.googleId) {
+          user.googleId = googlePayload.sub;
+          await this.usersService.update(user.id, { googleId: googlePayload.sub } as any);
+        }
+      } else {
+        isNewUser = true;
+        user = await this.usersService.create({
+          googleId: googlePayload.sub,
+          email: googlePayload.email ?? '',
+          displayName: googlePayload.name ?? 'User',
+          photoUrl: googlePayload.picture,
+        });
+      }
     }
 
     if (user.isBanned) throw new UnauthorizedException('Account is banned');
@@ -59,6 +72,103 @@ export class AuthService {
       user,
       isNewUser,
       isProfileComplete: user.isProfileComplete,
+    };
+  }
+
+  async unifiedLogin(dto: UnifiedLoginDto) {
+    // 1. Verify Google token
+    let googlePayload: any;
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken: dto.token_id,
+        audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      });
+      googlePayload = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    if (!googlePayload) throw new UnauthorizedException('Invalid Google token');
+
+    // 2. Find existing user by googleId, fallback to email
+    let user = await this.usersService.findByGoogleId(googlePayload.sub);
+
+    if (!user) {
+      const emailToSearch = dto.email || googlePayload.email || '';
+      if (emailToSearch) {
+        user = await this.usersService.findByEmail(emailToSearch);
+      }
+      if (user && !user.googleId) {
+        await this.usersService.update(user.id, { googleId: googlePayload.sub } as any);
+      }
+    }
+
+    // 3. All 3 optional profile fields must be present to count as a setup call
+    const hasProfileData = !!(dto.display_name && dto.gender && dto.country_code);
+
+    let isNewUser = false;
+
+    if (!user) {
+      // 4A. NEW USER — create with whatever fields Flutter sent
+      isNewUser = true;
+      user = await this.usersService.create({
+        googleId: googlePayload.sub,
+        email: dto.email || googlePayload.email || '',
+        displayName: dto.display_name || googlePayload.name || 'User',
+        photoUrl: googlePayload.picture,
+        gender: dto.gender as any,
+        countryName: dto.country_name,
+        countryCode: dto.country_code,
+        isOnline: true,
+        isProfileComplete: hasProfileData,
+      } as any);
+    } else {
+      // 4B. EXISTING USER
+      if (user.isBanned) throw new UnauthorizedException('Account is banned');
+
+      if (hasProfileData && !user.isProfileComplete) {
+        await this.usersService.update(user.id, {
+          displayName: dto.display_name,
+          gender: dto.gender as any,
+          countryName: dto.country_name,
+          countryCode: dto.country_code,
+        });
+        await this.usersService.markProfileComplete(user.id);
+      }
+
+      await this.usersService.setOnlineStatus(user.id, true);
+      user = (await this.usersService.findById(user.id))!;
+    }
+
+    if (user.isBanned) throw new UnauthorizedException('Account is banned');
+
+    // 5. Generate tokens
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = this.generateRefreshToken(user);
+
+    return {
+      success: true,
+      isNewUser,
+      message: hasProfileData ? 'Profile setup complete' : 'Login successful',
+      data: {
+        accessToken,
+        refreshToken,
+        expiresIn: 604800,
+        user: {
+          id: user.id,
+          email: user.email,
+          displayName: user.displayName,
+          photoUrl: user.photoUrl,
+          gender: user.gender !== 'other' ? user.gender : null,
+          countryName: user.countryName ?? null,
+          countryCode: user.countryCode ?? null,
+          isVip: user.isVip,
+          isOnline: user.isOnline,
+          isProfileComplete: user.isProfileComplete,
+          walletBalance: user.coins ?? 0,
+          createdAt: user.createdAt,
+        },
+      },
     };
   }
 

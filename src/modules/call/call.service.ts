@@ -12,7 +12,12 @@ export class CallService {
 
   // roomId must be the Redis roomId so endCall() can find it later
   async createCallRecord(roomId: string, userAId: number, userBId: number): Promise<CallRoom> {
-    const room = this.callRoomRepository.create({ id: roomId, userAId, userBId });
+    const room = this.callRoomRepository.create({
+      id: roomId,
+      userAId,
+      userBId,
+      startedAt: new Date(),
+    });
     return this.callRoomRepository.save(room);
   }
 

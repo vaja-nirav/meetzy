@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { ThrottlerModule } from '@nestjs/throttler';
 import appConfig from './config/app.config';
+import { SnakeNamingStrategy } from './config/snake-naming.strategy';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { MatchmakingModule } from './modules/matchmaking/matchmaking.module';
@@ -29,6 +30,7 @@ import { CountriesModule } from './modules/countries/countries.module';
         database: cs.get<string>('DB_NAME', 'meetzy_db'),
         autoLoadEntities: true,
         synchronize: cs.get<string>('NODE_ENV') !== 'production',
+        namingStrategy: new SnakeNamingStrategy(),
         charset: 'utf8mb4',
         timezone: '+00:00',
       }),

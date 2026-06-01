@@ -2,33 +2,29 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  UpdateDateColumn,
-  OneToOne,
-  OneToMany,
+  CreateDateColumn,
+  ManyToOne,
   JoinColumn,
 } from 'typeorm';
 
-@Entity('wallets')
-export class Wallet {
+@Entity('purchased_coins')
+export class PurchasedCoin {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'int' })
-  userId: number;
+  userId!: number;
 
-  @Column({ type: 'decimal', precision: 18, scale: 2, default: 0 })
-  balance: number;
+  @Column({ type: 'int', default: 0 })
+  coins!: number;
 
-  @Column({ default: 'coins' })
-  currency: string;
+  @Column({ type: 'varchar' })
+  type!: string; // e.g. "Google Pay", "Stripe", "In-App Purchase", etc.
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @CreateDateColumn()
+  createdAt!: Date;
 
-  @OneToOne('User', 'wallet')
-  @JoinColumn({ name: 'userId' })
+  @ManyToOne('User', 'purchases')
+  @JoinColumn({ name: 'user_id' })
   user: any;
-
-  @OneToMany('Transaction', 'wallet', { cascade: true, eager: false })
-  transactions: any[];
 }

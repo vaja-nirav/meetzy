@@ -3,19 +3,19 @@ import { Entity, PrimaryGeneratedColumn, Column, OneToMany, AfterLoad } from 'ty
 @Entity('countries')
 export class Country {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ unique: true })
-  name: string;
+  name!: string;
 
   @Column({ unique: true, length: 2 })
-  code: string;
+  code!: string;
 
   @Column({ length: 10 })
-  dialCode: string;
+  dialCode!: string;
 
   // Computed after load — not stored in DB
-  flag: string;
+  flag!: string;
 
   @AfterLoad()
   computeFlag() {

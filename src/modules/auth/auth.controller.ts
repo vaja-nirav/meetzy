@@ -1,7 +1,8 @@
 import { Controller, Post, Body, Get, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { GoogleAuthDto, RefreshTokenDto } from './dto/google-auth.dto';
+import { RefreshTokenDto } from './dto/google-auth.dto';
+import { UnifiedLoginDto } from './dto/unified-login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../users/entities/user.entity';
@@ -11,10 +12,16 @@ import { User } from '../users/entities/user.entity';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  @Post('google')
-  @ApiOperation({ summary: 'Login with Google ID token (mobile flow)' })
-  async googleLogin(@Body() dto: GoogleAuthDto) {
-    return this.authService.googleLogin(dto.idToken);
+  @Post('login')
+  @ApiOperation({
+    summary: 'Unified Login + Profile Setup',
+    description:
+      'Call 1 (login screen): send token_id only → returns isProfileComplete: false → redirect to profile setup.\n' +
+      'Call 2 (setup screen): send token_id + display_name + gender + country_code → returns isProfileComplete: true → redirect to home.\n' +
+      'Call 3 (returning user): send token_id only → returns isProfileComplete: true → redirect to home.',
+  })
+  async login(@Body() dto: UnifiedLoginDto) {
+    return this.authService.unifiedLogin(dto);
   }
 
   @Post('refresh')

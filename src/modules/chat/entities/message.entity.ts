@@ -16,34 +16,34 @@ export enum MessageType {
 @Entity('messages')
 export class Message {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'int' })
-  senderId: number;
+  senderId!: number;
 
   @Column({ type: 'int' })
-  receiverId: number;
+  receiverId!: number;
 
   @Column({ type: 'varchar' })
-  roomId: string;
+  roomId!: string;
 
   @Column({ type: 'text' })
-  content: string;
+  content!: string;
 
   @Column({ type: 'enum', enum: MessageType, default: MessageType.TEXT })
-  messageType: MessageType;
+  messageType!: MessageType;
 
   @Column({ default: false })
-  isRead: boolean;
+  isRead!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @ManyToOne('User', 'sentMessages', { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'senderId' })
+  @JoinColumn({ name: 'sender_id' })
   sender: any;
 
   @ManyToOne('User', 'receivedMessages', { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'receiverId' })
+  @JoinColumn({ name: 'receiver_id' })
   receiver: any;
 }

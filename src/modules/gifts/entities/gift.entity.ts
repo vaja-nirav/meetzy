@@ -8,23 +8,23 @@ import {
 @Entity('gifts')
 export class Gift {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'int' })
-  senderId: number;
+  senderId!: number;
 
   @Column({ type: 'int' })
-  receiverId: number;
+  receiverId!: number;
 
   @Column({ type: 'varchar' })
-  roomId: string;
+  roomId!: string;
 
   @Column({ type: 'varchar' })
-  giftType: string;
+  giftType!: string;
 
   @Column({ type: 'int' })
-  coinsValue: number;
+  coinsValue!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 }

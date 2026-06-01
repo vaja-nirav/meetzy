@@ -7,35 +7,24 @@ import {
   JoinColumn,
 } from 'typeorm';
 
-export enum TransactionType {
-  CREDIT = 'credit',
-  DEBIT = 'debit',
-}
-
-@Entity('transactions')
-export class Transaction {
+@Entity('used_coins')
+export class UsedCoin {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
+
+  @Column({ type: 'int' })
+  userId!: number;
+
+  @Column({ type: 'int', default: 0 })
+  coins!: number;
 
   @Column({ type: 'varchar' })
-  walletId: string;
-
-  @Column({ type: 'enum', enum: TransactionType })
-  type: TransactionType;
-
-  @Column({ type: 'decimal', precision: 18, scale: 2 })
-  amount: number;
-
-  @Column({ type: 'varchar' })
-  reason: string;
-
-  @Column({ type: 'decimal', precision: 18, scale: 2 })
-  balanceAfter: number;
+  type!: string; // e.g. reason to spend that coins
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
-  @ManyToOne('Wallet', 'transactions')
-  @JoinColumn({ name: 'walletId' })
-  wallet: any;
+  @ManyToOne('User', 'usedCoins')
+  @JoinColumn({ name: 'user_id' })
+  user: any;
 }

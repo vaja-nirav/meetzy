@@ -14,14 +14,13 @@ import { ProfileService } from './profile.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UpdateUserDto } from '../users/dto/update-user.dto';
-import { SetupProfileDto } from './dto/setup-profile.dto';
 import { User } from '../users/entities/user.entity';
 
 class ReportUserDto {
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
-  reason: string;
+  reason!: string;
 }
 
 @ApiTags('Profile')
@@ -30,15 +29,6 @@ class ReportUserDto {
 @Controller('profile')
 export class ProfileController {
   constructor(private readonly profileService: ProfileService) {}
-
-  @Post('setup')
-  @ApiOperation({
-    summary: 'Complete profile setup after first login',
-    description: 'Call this when new user clicks "Get Started". Gender is permanent and cannot be changed later.',
-  })
-  setupProfile(@CurrentUser() user: User, @Body() dto: SetupProfileDto) {
-    return this.profileService.setupProfile(user.id, dto);
-  }
 
   @Get('me')
   @ApiOperation({ summary: 'Get own full profile with wallet balance' })

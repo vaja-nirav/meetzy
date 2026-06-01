@@ -32,6 +32,16 @@ export class UpdateUserDto {
   @IsPositive()
   countryId?: number;
 
+  @ApiPropertyOptional({ example: 'India' })
+  @IsOptional()
+  @IsString()
+  countryName?: string;
+
+  @ApiPropertyOptional({ example: 'IN', description: '2-letter ISO country code' })
+  @IsOptional()
+  @IsString()
+  countryCode?: string;
+
   @ApiPropertyOptional({ description: 'Photo URL to ADD to the gallery (max 6)' })
   @IsOptional()
   @IsString()

@@ -3,19 +3,12 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 
-interface QueueEntry {
-  userId: number;
-  gender: string;
-  country: string | null;
-  isVip: boolean;
-  socketId: string;
-  joinedAt: number;
-}
-
-const QUEUE_KEY = 'meetzy:matchmaking:queue';
-const ROOM_PREFIX = 'meetzy:room:';
-const USER_ROOM_PREFIX = 'meetzy:user:room:';
-const ROOM_TTL = 86_400; // 24 hours
+const AVAILABLE_KEY  = 'meetzy:available';          // SET  — free users (userId strings)
+const CALL_PREFIX    = 'meetzy:call:';               // STRING — pending call data
+const ROOM_PREFIX    = 'meetzy:room:';               // HASH  — active room
+const USER_ROOM_KEY  = 'meetzy:user:room:';          // STRING — userId → roomId
+const CALL_TTL       = 30;                           // seconds — auto-expire unanswered calls
+const ROOM_TTL       = 86_400;                       // 24 hours
 
 @Injectable()
 export class MatchmakingService {
@@ -23,66 +16,77 @@ export class MatchmakingService {
 
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
-  async addToQueue(entry: QueueEntry): Promise<void> {
-    await this.removeFromQueue(entry.userId);
-    const value = JSON.stringify(entry);
-    if (entry.isVip) {
-      await this.redis.lpush(QUEUE_KEY, value);
-    } else {
-      await this.redis.rpush(QUEUE_KEY, value);
-    }
-    await this.redis.expire(QUEUE_KEY, 3600);
-    this.logger.debug(`User ${entry.userId} added to queue`);
+  // ── Available users (free, not in a call) ──────────────────────────────────
+
+  async markAvailable(userId: number): Promise<void> {
+    await this.redis.sadd(AVAILABLE_KEY, String(userId));
   }
 
-  async removeFromQueue(userId: number): Promise<void> {
-    const all = await this.redis.lrange(QUEUE_KEY, 0, -1);
-    for (const item of all) {
-      const entry: QueueEntry = JSON.parse(item);
-      if (entry.userId === userId) {
-        await this.redis.lrem(QUEUE_KEY, 1, item);
-        break;
-      }
-    }
+  async markUnavailable(userId: number): Promise<void> {
+    await this.redis.srem(AVAILABLE_KEY, String(userId));
   }
 
-  async findMatch(
-    userId: number,
-    preferredGender?: string,
-    country?: string,
-  ): Promise<QueueEntry | null> {
-    const all = await this.redis.lrange(QUEUE_KEY, 0, -1);
-
-    for (const item of all) {
-      const candidate: QueueEntry = JSON.parse(item);
-      if (candidate.userId === userId) continue;
-      if (preferredGender && candidate.gender !== preferredGender) continue;
-      await this.redis.lrem(QUEUE_KEY, 1, item);
-      return candidate;
-    }
-    return null;
+  async isAvailable(userId: number): Promise<boolean> {
+    return (await this.redis.sismember(AVAILABLE_KEY, String(userId))) === 1;
   }
+
+  // Pick a random free user that isn't the caller
+  async findRandomAvailableUser(excludeUserId: number): Promise<number | null> {
+    const members = await this.redis.smembers(AVAILABLE_KEY);
+    const candidates = members.filter(id => Number(id) !== excludeUserId);
+    if (candidates.length === 0) return null;
+    const pick = candidates[Math.floor(Math.random() * candidates.length)];
+    return Number(pick);
+  }
+
+  // ── Pending calls (ringing state) ──────────────────────────────────────────
+
+  async savePendingCall(callId: string, callerId: number, calleeId: number): Promise<void> {
+    await this.redis.setex(
+      `${CALL_PREFIX}${callId}`,
+      CALL_TTL,
+      JSON.stringify({ callerId, calleeId }),
+    );
+    // Remove callee from available while they're being rung
+    await this.markUnavailable(calleeId);
+  }
+
+  async getPendingCall(callId: string): Promise<{ callerId: number; calleeId: number } | null> {
+    const raw = await this.redis.get(`${CALL_PREFIX}${callId}`);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  }
+
+  async deletePendingCall(callId: string): Promise<{ callerId: number; calleeId: number } | null> {
+    const call = await this.getPendingCall(callId);
+    if (call) await this.redis.del(`${CALL_PREFIX}${callId}`);
+    return call;
+  }
+
+  // ── Rooms ──────────────────────────────────────────────────────────────────
 
   async createRoom(userAId: number, userBId: number): Promise<string> {
     const roomId = uuidv4();
-    const roomKey = `${ROOM_PREFIX}${roomId}`;
-    await this.redis.hset(roomKey, {
+    await this.redis.hset(`${ROOM_PREFIX}${roomId}`, {
       userAId: String(userAId),
       userBId: String(userBId),
       createdAt: Date.now(),
     });
-    await this.redis.expire(roomKey, ROOM_TTL);
-    await this.redis.set(`${USER_ROOM_PREFIX}${userAId}`, roomId, 'EX', ROOM_TTL);
-    await this.redis.set(`${USER_ROOM_PREFIX}${userBId}`, roomId, 'EX', ROOM_TTL);
+    await this.redis.expire(`${ROOM_PREFIX}${roomId}`, ROOM_TTL);
+    await this.redis.set(`${USER_ROOM_KEY}${userAId}`, roomId, 'EX', ROOM_TTL);
+    await this.redis.set(`${USER_ROOM_KEY}${userBId}`, roomId, 'EX', ROOM_TTL);
+    // Both users are now in a room — not available
+    await this.markUnavailable(userAId);
+    await this.markUnavailable(userBId);
+    this.logger.log(`Room ${roomId} created for users ${userAId} ↔ ${userBId}`);
     return roomId;
   }
 
   async closeRoom(roomId: string): Promise<{ userAId?: number; userBId?: number }> {
-    const roomKey = `${ROOM_PREFIX}${roomId}`;
-    const data = await this.redis.hgetall(roomKey);
-    await this.redis.del(roomKey);
-    if (data.userAId) await this.redis.del(`${USER_ROOM_PREFIX}${data.userAId}`);
-    if (data.userBId) await this.redis.del(`${USER_ROOM_PREFIX}${data.userBId}`);
+    const data = await this.redis.hgetall(`${ROOM_PREFIX}${roomId}`);
+    await this.redis.del(`${ROOM_PREFIX}${roomId}`);
+    if (data.userAId) await this.redis.del(`${USER_ROOM_KEY}${data.userAId}`);
+    if (data.userBId) await this.redis.del(`${USER_ROOM_KEY}${data.userBId}`);
     return {
       userAId: data.userAId ? Number(data.userAId) : undefined,
       userBId: data.userBId ? Number(data.userBId) : undefined,
@@ -90,7 +94,7 @@ export class MatchmakingService {
   }
 
   async getUserRoom(userId: number): Promise<string | null> {
-    return this.redis.get(`${USER_ROOM_PREFIX}${userId}`);
+    return this.redis.get(`${USER_ROOM_KEY}${userId}`);
   }
 
   async getRoom(roomId: string): Promise<{ userAId: number; userBId: number } | null> {
