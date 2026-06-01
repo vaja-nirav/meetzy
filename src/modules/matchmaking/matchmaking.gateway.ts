@@ -17,7 +17,7 @@ import { JoinQueueDto } from './dto/join-queue.dto';
 
 @WebSocketGateway({ namespace: '/matchmaking', cors: { origin: '*' } })
 export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer() server: Server;
+  @WebSocketServer() server!: Server;
   private readonly logger = new Logger(MatchmakingGateway.name);
 
   constructor(
@@ -78,13 +78,12 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
     if (!userId) return;
 
     const user = await this.usersService.findById(userId);
-    if (!user) return;
 
     await this.matchmakingService.addToQueue({
       userId,
-      gender: user.gender,
-      country: user.country,
-      isVip: user.isVip,
+      gender: user?.gender ?? 'other',
+      country: user?.country ?? null,
+      isVip: user?.isVip ?? (client.data.isVip as boolean) ?? false,
       socketId: client.id,
       joinedAt: Date.now(),
     });

@@ -1,27 +1,27 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   Column,
   CreateDateColumn,
 } from 'typeorm';
 
 @Entity('call_rooms')
 export class CallRoom {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryColumn({ type: 'varchar', length: 36 })
+  id!: string; // Redis roomId — ensures endCall(roomId) always finds the record
 
   @Column({ type: 'int' })
-  userAId: number;
+  userAId!: number;
 
   @Column({ type: 'int' })
-  userBId: number;
+  userBId!: number;
 
   @CreateDateColumn()
-  startedAt: Date;
+  startedAt!: Date;
 
   @Column({ type: 'timestamp', nullable: true })
-  endedAt: Date | null;
+  endedAt!: Date | null;
 
   @Column({ type: 'int', nullable: true })
-  duration: number | null;
+  duration!: number | null;
 }
