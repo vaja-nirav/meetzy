@@ -149,7 +149,7 @@ export class AuthService {
     return {
       success: true,
       isNewUser,
-      message: hasProfileData ? 'Profile setup complete' : 'Login successful',
+      message: hasProfileData ? 'Profile setup complete' : 'Login successfully',
       data: {
         accessToken,
         refreshToken,
