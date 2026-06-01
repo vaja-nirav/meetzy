@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsOptional, IsPositive, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsPositive, IsString, MaxLength, MinLength, IsArray } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Gender } from '../entities/user.entity';
 
@@ -31,6 +31,17 @@ export class UpdateUserDto {
   @IsInt()
   @IsPositive()
   countryId?: number;
+
+  @ApiPropertyOptional({ description: 'Photo URL to ADD to the gallery (max 6)' })
+  @IsOptional()
+  @IsString()
+  url?: string;
+
+  @ApiPropertyOptional({ type: [String], description: 'List of photo URLs to REPLACE the gallery with (max 6)' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  urls?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()

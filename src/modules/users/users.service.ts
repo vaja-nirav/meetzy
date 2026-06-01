@@ -16,25 +16,71 @@ export class UsersService {
   ) {}
 
   async findById(id: number): Promise<User | null> {
-    return this.userRepository.findOne({ where: { id } });
+    return this.userRepository.findOne({
+      where: { id },
+      relations: { photos: true },
+      order: {
+        photos: {
+          sortOrder: 'ASC',
+          createdAt: 'ASC',
+        },
+      },
+    });
   }
 
   async findByGoogleId(googleId: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { googleId } });
+    return this.userRepository.findOne({
+      where: { googleId },
+      relations: { photos: true },
+      order: {
+        photos: {
+          sortOrder: 'ASC',
+          createdAt: 'ASC',
+        },
+      },
+    });
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    return this.userRepository.findOne({ where: { email } });
+    return this.userRepository.findOne({
+      where: { email },
+      relations: { photos: true },
+      order: {
+        photos: {
+          sortOrder: 'ASC',
+          createdAt: 'ASC',
+        },
+      },
+    });
   }
 
   async create(data: CreateUserDto): Promise<User> {
     const user = this.userRepository.create(data);
-    return this.userRepository.save(user);
+    const saved = await this.userRepository.save(user);
+    const loaded = await this.findById(saved.id);
+    if (!loaded) throw new NotFoundException('User not found after creation');
+    return loaded;
   }
 
   async update(id: number, data: UpdateUserDto): Promise<User> {
-    await this.userRepository.update(id, data as any);
-    const updated = await this.findById(id);
+    const { url, urls, ...dbData } = data;
+
+    if (Object.keys(dbData).length > 0) {
+      await this.userRepository.update(id, dbData as any);
+    }
+
+    if (url) {
+      await this.addPhoto(id, url);
+    }
+
+    if (urls) {
+      await this.updatePhotos(id, urls);
+    }
+
+    const updated = await this.userRepository.findOne({
+      where: { id },
+      relations: { photos: true },
+    });
     if (!updated) throw new NotFoundException('User not found');
     return updated;
   }
