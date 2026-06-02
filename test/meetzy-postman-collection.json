@@ -302,6 +302,41 @@
             "description": "Returns a randomized list of active online users for the radar home screen.\n\nFilters:\n- gender=all (Default): returns 80% female and 20% male, shuffled randomly.\n- gender=female: returns only females.\n- gender=male: returns only males."
           },
           "response": []
+        },
+        {
+          "name": "Delete My Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Account deleted successfully', () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  pm.expect(res.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "me"]
+            },
+            "description": "Purges the authenticated user account and all of their related transactional data, photos, gifts, messages, and calls from both the MySQL database and Redis states."
+          },
+          "response": []
         }
       ]
     },

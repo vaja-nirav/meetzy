@@ -133,6 +133,13 @@ export class UsersController {
     return this.usersService.reorderPhotos(user.id, dto.orderedIds);
   }
 
+  @Delete('me')
+  @ApiOperation({ summary: 'Delete own user account and all related data' })
+  async deleteMe(@CurrentUser() user: User) {
+    await this.usersService.deleteUser(user.id);
+    return { success: true, message: 'Account and related data deleted successfully' };
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get user by ID' })
   async getUser(@Param('id', ParseIntPipe) id: number) {

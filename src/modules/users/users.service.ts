@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { Repository, EntityManager } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserPhoto } from './entities/user-photo.entity';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -13,6 +15,8 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(UserPhoto)
     private readonly photoRepository: Repository<UserPhoto>,
+    private readonly entityManager: EntityManager,
+    @InjectRedis() private readonly redis: Redis,
   ) {}
 
   async findById(id: number): Promise<User | null> {
@@ -307,5 +311,36 @@ export class UsersService {
 
     // Shuffle combined list in-memory
     return combined.sort(() => Math.random() - 0.5);
+  }
+
+  async deleteUser(userId: number): Promise<void> {
+    // 1. Clean up Redis state
+    await this.redis.srem('meetzy:available', String(userId));
+    await this.redis.del(`meetzy:user:room:${userId}`);
+
+    // 2. Perform database deletes in a transaction
+    await this.entityManager.transaction(async (manager) => {
+      // Delete purchased & used coins
+      await manager.delete('purchased_coins', { userId });
+      await manager.delete('used_coins', { userId });
+
+      // Delete gifts (where user is sender or receiver)
+      await manager.delete('gifts', { senderId: userId });
+      await manager.delete('gifts', { receiverId: userId });
+
+      // Delete call rooms (where user is participant A or B)
+      await manager.delete('call_rooms', { userAId: userId });
+      await manager.delete('call_rooms', { userBId: userId });
+
+      // Delete messages (where user is sender or receiver)
+      await manager.delete('messages', { senderId: userId });
+      await manager.delete('messages', { receiverId: userId });
+
+      // Delete photos
+      await manager.delete('user_photos', { userId });
+
+      // Delete user profile
+      await manager.delete('users', { id: userId });
+    });
   }
 }
