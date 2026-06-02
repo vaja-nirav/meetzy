@@ -5,6 +5,7 @@ import Redis from 'ioredis';
 import { Repository, EntityManager } from 'typeorm';
 import { User } from './entities/user.entity';
 import { UserPhoto } from './entities/user-photo.entity';
+import { Country } from '../countries/entities/country.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -59,8 +60,40 @@ export class UsersService {
   }
 
   async create(data: CreateUserDto): Promise<User> {
-    const user = this.userRepository.create(data);
-    const saved = await this.userRepository.save(user);
+    const countryId = (data as any).countryId;
+    const countryCode = (data as any).countryCode;
+    const countryName = (data as any).countryName;
+
+    if (countryId) {
+      const country = await this.entityManager.findOne(Country, {
+        where: { id: countryId },
+      });
+      if (country) {
+        (data as any).countryName = country.name;
+        (data as any).countryCode = country.code;
+      }
+    } else if (countryCode) {
+      const country = await this.entityManager.findOne(Country, {
+        where: { code: countryCode.toUpperCase() },
+      });
+      if (country) {
+        (data as any).countryId = country.id;
+        (data as any).countryName = country.name;
+        (data as any).countryCode = country.code;
+      }
+    } else if (countryName) {
+      const country = await this.entityManager.findOne(Country, {
+        where: { name: countryName },
+      });
+      if (country) {
+        (data as any).countryId = country.id;
+        (data as any).countryName = country.name;
+        (data as any).countryCode = country.code;
+      }
+    }
+
+    const user = this.userRepository.create(data as any);
+    const saved = await this.userRepository.save(user as any) as any;
     const loaded = await this.findById(saved.id);
     if (!loaded) throw new NotFoundException('User not found after creation');
     return loaded;
@@ -70,6 +103,38 @@ export class UsersService {
     const { url, urls, ...dbData } = data;
 
     if (Object.keys(dbData).length > 0) {
+      const countryId = (dbData as any).countryId;
+      const countryCode = (dbData as any).countryCode;
+      const countryName = (dbData as any).countryName;
+
+      if (countryId) {
+        const country = await this.entityManager.findOne(Country, {
+          where: { id: countryId },
+        });
+        if (country) {
+          (dbData as any).countryName = country.name;
+          (dbData as any).countryCode = country.code;
+        }
+      } else if (countryCode) {
+        const country = await this.entityManager.findOne(Country, {
+          where: { code: countryCode.toUpperCase() },
+        });
+        if (country) {
+          (dbData as any).countryId = country.id;
+          (dbData as any).countryName = country.name;
+          (dbData as any).countryCode = country.code;
+        }
+      } else if (countryName) {
+        const country = await this.entityManager.findOne(Country, {
+          where: { name: countryName },
+        });
+        if (country) {
+          (dbData as any).countryId = country.id;
+          (dbData as any).countryName = country.name;
+          (dbData as any).countryCode = country.code;
+        }
+      }
+
       await this.userRepository.update(id, dbData as any);
     }
 
