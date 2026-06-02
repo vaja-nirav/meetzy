@@ -13,12 +13,9 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Get('check-account')
-  @ApiOperation({ summary: 'Check if an account exists by email or googleId' })
-  async checkAccount(
-    @Query('email') email?: string,
-    @Query('googleId') googleId?: string,
-  ) {
-    return this.authService.checkAccountStatus(email, googleId);
+  @ApiOperation({ summary: 'Check if an account exists by verifying Google token_id' })
+  async checkAccount(@Query('token_id') tokenId: string) {
+    return this.authService.checkAccountStatus(tokenId);
   }
 
   @Post('login')

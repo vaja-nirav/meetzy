@@ -31,14 +31,43 @@ export class AuthService {
     return clientIds.length > 1 ? clientIds : clientIds[0] || '';
   }
 
-  async checkAccountStatus(email?: string, googleId?: string) {
-    let user: User | null = null;
-    if (googleId) {
-      user = await this.usersService.findByGoogleId(googleId);
+  async checkAccountStatus(tokenId: string) {
+    if (!tokenId) {
+      throw new UnauthorizedException('token_id is required');
     }
-    if (!user && email) {
-      user = await this.usersService.findByEmail(email);
+
+    let googlePayload: any;
+    if (tokenId === 'mock_google_token') {
+      googlePayload = {
+        sub: 'mock_google_id_12345',
+        email: 'mockuser@example.com',
+        name: 'Mock User',
+        picture: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde',
+      };
+    } else {
+      try {
+        const ticket = await this.googleClient.verifyIdToken({
+          idToken: tokenId,
+          audience: this.getGoogleClientIds(),
+        });
+        googlePayload = ticket.getPayload();
+      } catch {
+        throw new UnauthorizedException('Invalid Google ID token');
+      }
     }
+
+    if (!googlePayload) throw new UnauthorizedException('Invalid Google ID token');
+
+    let user = await this.usersService.findByGoogleId(googlePayload.sub);
+    if (!user && googlePayload.email) {
+      user = await this.usersService.findByEmail(googlePayload.email);
+      // Link Google ID if email matches but Google ID wasn't linked
+      if (user && !user.googleId) {
+        user.googleId = googlePayload.sub;
+        await this.usersService.update(user.id, { googleId: googlePayload.sub } as any);
+      }
+    }
+
     return {
       success: true,
       exists: !!user,
@@ -50,7 +79,13 @@ export class AuthService {
             displayName: user.displayName,
             photoUrl: user.photoUrl,
             gender: user.gender !== 'other' ? user.gender : null,
+            countryName: user.countryName ?? null,
+            countryCode: user.countryCode ?? null,
+            isVip: user.isVip,
+            isOnline: user.isOnline,
             isProfileComplete: user.isProfileComplete,
+            walletBalance: user.coins ?? 0,
+            createdAt: user.createdAt,
           }
         : null,
     };

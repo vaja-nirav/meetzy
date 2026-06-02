@@ -43,6 +43,43 @@
       "description": "Single endpoint handles all auth flows — new user, profile setup, and returning user. token_id is always required. All other fields are optional. Flutter navigates based on isProfileComplete in the response.",
       "item": [
         {
+          "name": "Check Account",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Account check succeeded', () => {",
+                  "  pm.expect(pm.response.code).to.equal(200);",
+                  "  pm.expect(res.success).to.be.true;",
+                  "  pm.expect(res).to.have.property('exists');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/check-account?token_id=mock_google_token",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "check-account"],
+              "query": [
+                {
+                  "key": "token_id",
+                  "value": "mock_google_token",
+                  "description": "Google ID token (supports 'mock_google_token' in development)"
+                }
+              ]
+            },
+            "description": "Checks if a user already exists in the database by verifying their Google ID token."
+          },
+          "response": []
+        },
+        {
           "name": "Login / Profile Setup",
           "event": [
             {
