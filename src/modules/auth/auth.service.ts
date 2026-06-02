@@ -67,7 +67,7 @@ export class AuthService {
       coins: user.coins ?? 0,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      photos: (user.photos || []).map(p => ({
+      cover_images: (user.photos || []).map(p => ({
         id: p.id,
         userId: p.userId,
         url: this.resolveUrl(p.url, baseUrl),

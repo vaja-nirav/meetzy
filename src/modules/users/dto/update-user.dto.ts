@@ -64,7 +64,7 @@ export class UpdateUserDto {
     return value;
   })
   @IsString({ each: true })
-  urls?: string[];
+  cover_images?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()

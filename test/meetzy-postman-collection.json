@@ -272,7 +272,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["profile", "me"]
             },
-            "description": "Returns the full profile of the currently logged-in user.\n\nNote: Response is wrapped inside a data object alongside refreshed access and refresh tokens.\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"accessToken\": \"...\",\n    \"refreshToken\": \"...\",\n    \"expiresIn\": 604800,\n    \"user\": {\n      \"id\": 6,\n      \"googleId\": \"111590874060848869509\",\n      \"email\": \"vajanirav2003@gmail.com\",\n      \"displayName\": \"Nirav Vaja\",\n      \"bio\": \"Software Developer | Video chat enthusiast\",\n      \"photoUrl\": \"https://...\",\n      \"gender\": \"male\",\n      \"countryId\": 13,\n      \"country\": {\n        \"id\": 13,\n        \"name\": \"Bahrain\",\n        \"code\": \"BH\",\n        \"dialCode\": \"+973\",\n        \"flag\": \"🇧🇭\"\n      },\n      \"countryName\": \"Bahrain\",\n      \"countryCode\": \"BH\",\n      \"isVip\": false,\n      \"isOnline\": true,\n      \"isBanned\": false,\n      \"isProfileComplete\": true,\n      \"fcmToken\": null,\n      \"coins\": 0,\n      \"createdAt\": \"2026-06-02T12:40:52.632Z\",\n      \"updatedAt\": \"2026-06-02T15:03:33.000Z\",\n      \"photos\": [],\n      \"wallet\": { \"balance\": 0, \"currency\": \"coins\" }\n    }\n  }\n}\n```"
+            "description": "Returns the full profile of the currently logged-in user.\n\nNote: Response is wrapped inside a data object alongside refreshed access and refresh tokens.\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"accessToken\": \"...\",\n    \"refreshToken\": \"...\",\n    \"expiresIn\": 604800,\n    \"user\": {\n      \"id\": 6,\n      \"googleId\": \"111590874060848869509\",\n      \"email\": \"vajanirav2003@gmail.com\",\n      \"displayName\": \"Nirav Vaja\",\n      \"bio\": \"Software Developer | Video chat enthusiast\",\n      \"photoUrl\": \"https://...\",\n      \"gender\": \"male\",\n      \"countryId\": 13,\n      \"country\": {\n        \"id\": 13,\n        \"name\": \"Bahrain\",\n        \"code\": \"BH\",\n        \"dialCode\": \"+973\",\n        \"flag\": \"🇧🇭\"\n      },\n      \"countryName\": \"Bahrain\",\n      \"countryCode\": \"BH\",\n      \"isVip\": false,\n      \"isOnline\": true,\n      \"isBanned\": false,\n      \"isProfileComplete\": true,\n      \"fcmToken\": null,\n      \"coins\": 0,\n      \"createdAt\": \"2026-06-02T12:40:52.632Z\",\n      \"updatedAt\": \"2026-06-02T15:03:33.000Z\",\n      \"cover_images\": [],\n      \"wallet\": { \"balance\": 0, \"currency\": \"coins\" }\n    }\n  }\n}\n```"
           },
           "response": []
         },
@@ -322,8 +322,9 @@
                 },
                 {
                   "key": "photoUrl",
-                  "value": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-                  "type": "text"
+                  "type": "file",
+                  "src": [],
+                  "description": "Upload avatar profile picture file"
                 },
                 {
                   "key": "countryName",
@@ -341,10 +342,10 @@
                   "type": "text"
                 },
                 {
-                  "key": "urls",
-                  "value": "https://images.unsplash.com/photo-1494790108377-be9c29b29330,https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
-                  "type": "text",
-                  "description": "Comma-separated list of photo URLs to replace gallery with"
+                  "key": "cover_images",
+                  "type": "file",
+                  "src": [],
+                  "description": "Upload multiple gallery photo files (cover images)"
                 }
               ]
             },

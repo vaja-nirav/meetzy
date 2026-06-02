@@ -100,7 +100,7 @@ export class UsersService {
   }
 
   async update(id: number, data: UpdateUserDto): Promise<User> {
-    const { url, urls, ...dbData } = data;
+    const { url, cover_images, ...dbData } = data;
 
     if (Object.keys(dbData).length > 0) {
       const countryId = (dbData as any).countryId;
@@ -142,8 +142,8 @@ export class UsersService {
       await this.addPhoto(id, url);
     }
 
-    if (urls) {
-      await this.updatePhotos(id, urls);
+    if (cover_images) {
+      await this.updatePhotos(id, cover_images);
     }
 
     const updated = await this.userRepository.findOne({

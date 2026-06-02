@@ -75,16 +75,16 @@ export class ProfileController {
     const baseUrl = `${protocol}://${host}`;
 
     if (files && files.length > 0) {
-      const urlsFiles = files.filter(f => f.fieldname === 'urls');
+      const coverImagesFiles = files.filter(f => f.fieldname === 'cover_images');
       const photoUrlFile = files.find(f => f.fieldname === 'photoUrl');
 
       if (photoUrlFile) {
         dto.photoUrl = saveUploadedFile(photoUrlFile);
       }
 
-      if (urlsFiles.length > 0) {
-        const uploadedUrls = urlsFiles.map(f => saveUploadedFile(f));
-        dto.urls = uploadedUrls;
+      if (coverImagesFiles.length > 0) {
+        const uploadedUrls = coverImagesFiles.map(f => saveUploadedFile(f));
+        dto.cover_images = uploadedUrls;
       }
     }
 

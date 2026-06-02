@@ -86,7 +86,7 @@ export class ProfileService {
     }
 
     const updated = await this.usersService.update(userId, dto);
-    return this.resolveUserUrls(updated, baseUrl);
+    return this.authService.formatUserResponse(updated, baseUrl);
   }
 
   async getPublicProfile(userId: number) {
