@@ -57,8 +57,8 @@
                   "  pm.expect(res).to.have.property('exists');",
                   "});",
                   "if (res.success && res.exists && res.data) {",
-                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
-                  "  pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "  pm.collectionVariables.set('accessToken', res.data.access_token);",
+                  "  pm.collectionVariables.set('refreshToken', res.data.refresh_token);",
                   "  pm.collectionVariables.set('userId', String(res.data.user.id));",
                   "}"
                 ]
@@ -94,31 +94,31 @@
                 "exec": [
                   "const res = pm.response.json();",
                   "if (pm.response.code === 200) {",
-                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
-                  "  pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "  pm.collectionVariables.set('accessToken', res.data.access_token);",
+                  "  pm.collectionVariables.set('refreshToken', res.data.refresh_token);",
                   "  pm.collectionVariables.set('userId', String(res.data.user.id));",
                   "  pm.test('Request succeeded', () => {",
                   "    pm.expect(res.success).to.be.true;",
                   "  });",
                   "  pm.test('Access token is a string', () => {",
-                  "    pm.expect(res.data.accessToken).to.be.a('string');",
+                  "    pm.expect(res.data.access_token).to.be.a('string');",
                   "  });",
-                  "  pm.test('isNewUser field present', () => {",
-                  "    pm.expect(res).to.have.property('isNewUser');",
+                  "  pm.test('is_new_user field present', () => {",
+                  "    pm.expect(res).to.have.property('is_new_user');",
                   "  });",
-                  "  pm.test('isProfileComplete field present', () => {",
-                  "    pm.expect(res.data.user).to.have.property('isProfileComplete');",
+                  "  pm.test('is_profile_complete field present', () => {",
+                  "    pm.expect(res.data.user).to.have.property('is_profile_complete');",
                   "  });",
-                  "  pm.test('walletBalance in response', () => {",
-                  "    pm.expect(res.data.user).to.have.property('walletBalance');",
+                  "  pm.test('wallet in response', () => {",
+                  "    pm.expect(res.data.user).to.have.property('wallet');",
                   "  });",
-                  "  if (res.data.user.isProfileComplete) {",
-                  "    console.log('isProfileComplete: true → Flutter goes to Home Screen');",
+                  "  if (res.data.user.is_profile_complete) {",
+                  "    console.log('is_profile_complete: true → Flutter goes to Home Screen');",
                   "  } else {",
-                  "    console.log('isProfileComplete: false → Flutter shows Profile Setup Screen');",
+                  "    console.log('is_profile_complete: false → Flutter shows Profile Setup Screen');",
                   "  }",
-                  "  console.log('isNewUser:', res.isNewUser);",
-                  "  console.log('walletBalance:', res.data.user.walletBalance);",
+                  "  console.log('is_new_user:', res.is_new_user);",
+                  "  console.log('wallet:', res.data.user.wallet);",
                   "}"
                 ]
               }
@@ -173,7 +173,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["auth", "login"]
             },
-            "description": "One API for all Flutter auth scenarios. token_id is always required. All other fields are optional.\n\n──────────────────────────────────────────\nUSAGE GUIDE\n──────────────────────────────────────────\n\nScenario A — Login Screen (new or returning):\nSend only token_id. Remove all other fields.\n→ New user:       isProfileComplete: false → show Profile Setup Screen\n→ Returning user: isProfileComplete: true  → go to Home Screen\n\nScenario B — Profile Setup Screen:\nSend token_id + display_name + gender + country_name + country_code.\n→ Backend saves profile, isProfileComplete: true → go to Home Screen\n\n──────────────────────────────────────────\nFLUTTER NAVIGATION RULE\n──────────────────────────────────────────\nif (res.data.user.isProfileComplete == false) → Profile Setup Screen\nif (res.data.user.isProfileComplete == true)  → Home Screen\n\n──────────────────────────────────────────\nEXPECTED RESPONSE\n──────────────────────────────────────────\n```json\n{\n  \"success\": true,\n  \"isNewUser\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"accessToken\": \"eyJhbG...\",\n    \"refreshToken\": \"eyJhbG...\",\n    \"expiresIn\": 604800,\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"nirav@gmail.com\",\n      \"displayName\": \"John Doe\",\n      \"photoUrl\": \"https://...\",\n      \"gender\": \"male\",\n      \"countryName\": \"India\",\n      \"countryCode\": \"IN\",\n      \"isVip\": false,\n      \"isOnline\": true,\n      \"isProfileComplete\": false,\n      \"walletBalance\": 0,\n      \"createdAt\": \"2026-06-01T00:00:00.000Z\"\n    }\n  }\n}\n```"
+            "description": "One API for all Flutter auth scenarios. token_id is always required. All other fields are optional.\n\n──────────────────────────────────────────\nUSAGE GUIDE\n──────────────────────────────────────────\n\nScenario A — Login Screen (new or returning):\nSend only token_id. Remove all other fields.\n→ New user:       is_profile_complete: false → show Profile Setup Screen\n→ Returning user: is_profile_complete: true  → go to Home Screen\n\nScenario B — Profile Setup Screen:\nSend token_id + display_name + gender + country_name + country_code.\n→ Backend saves profile, is_profile_complete: true → go to Home Screen\n\n──────────────────────────────────────────\nFLUTTER NAVIGATION RULE\n──────────────────────────────────────────\nif (res.data.user.is_profile_complete == false) → Profile Setup Screen\nif (res.data.user.is_profile_complete == true)  → Home Screen\n\n──────────────────────────────────────────\nEXPECTED RESPONSE\n──────────────────────────────────────────\n```json\n{\n  \"success\": true,\n  \"is_new_user\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"access_token\": \"eyJhbG...\",\n    \"refresh_token\": \"eyJhbG...\",\n    \"expires_in\": 604800,\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"nirav@gmail.com\",\n      \"display_name\": \"John Doe\",\n      \"photo_url\": \"https://...\",\n      \"gender\": \"male\",\n      \"country_name\": \"India\",\n      \"country_code\": \"IN\",\n      \"is_vip\": false,\n      \"is_online\": true,\n      \"is_profile_complete\": false,\n      \"wallet_balance\": 0,\n      \"created_at\": \"2026-06-01T00:00:00.000Z\"\n    }\n  }\n}\n```"
           },
           "response": []
         },
@@ -272,7 +272,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["profile", "me"]
             },
-            "description": "Returns the full profile of the currently logged-in user.\n\nNote: Response is wrapped inside a data object alongside refreshed access and refresh tokens.\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"accessToken\": \"...\",\n    \"refreshToken\": \"...\",\n    \"expiresIn\": 604800,\n    \"user\": {\n      \"id\": 6,\n      \"googleId\": \"111590874060848869509\",\n      \"email\": \"vajanirav2003@gmail.com\",\n      \"displayName\": \"Nirav Vaja\",\n      \"bio\": \"Software Developer | Video chat enthusiast\",\n      \"photoUrl\": \"https://...\",\n      \"gender\": \"male\",\n      \"countryId\": 13,\n      \"country\": {\n        \"id\": 13,\n        \"name\": \"Bahrain\",\n        \"code\": \"BH\",\n        \"dialCode\": \"+973\",\n        \"flag\": \"🇧🇭\"\n      },\n      \"countryName\": \"Bahrain\",\n      \"countryCode\": \"BH\",\n      \"isVip\": false,\n      \"isOnline\": true,\n      \"isBanned\": false,\n      \"isProfileComplete\": true,\n      \"fcmToken\": null,\n      \"coins\": 0,\n      \"createdAt\": \"2026-06-02T12:40:52.632Z\",\n      \"updatedAt\": \"2026-06-02T15:03:33.000Z\",\n      \"cover_images\": [],\n      \"wallet\": { \"balance\": 0, \"currency\": \"coins\" }\n    }\n  }\n}\n```"
+            "description": "Returns the full profile of the currently logged-in user.\n\nNote: Response is wrapped inside a data object alongside refreshed access and refresh tokens.\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"access_token\": \"...\",\n    \"refresh_token\": \"...\",\n    \"expires_in\": 604800,\n    \"user\": {\n      \"id\": 6,\n      \"google_id\": \"111590874060848869509\",\n      \"email\": \"vajanirav2003@gmail.com\",\n      \"display_name\": \"Nirav Vaja\",\n      \"bio\": \"Software Developer | Video chat enthusiast\",\n      \"photo_url\": \"https://...\",\n      \"gender\": \"male\",\n      \"country_id\": 13,\n      \"country\": {\n        \"id\": 13,\n        \"name\": \"Bahrain\",\n        \"code\": \"BH\",\n        \"dial_code\": \"+973\",\n        \"flag\": \"🇧🇭\"\n      },\n      \"country_name\": \"Bahrain\",\n      \"country_code\": \"BH\",\n      \"is_vip\": false,\n      \"is_online\": true,\n      \"is_banned\": false,\n      \"is_profile_complete\": true,\n      \"fcm_token\": null,\n      \"coins\": 0,\n      \"created_at\": \"2026-06-02T12:40:52.632Z\",\n      \"updated_at\": \"2026-06-02T15:03:33.000Z\",\n      \"cover_images\": [],\n      \"wallet\": { \"balance\": 0, \"currency\": \"coins\" }\n    }\n  }\n}\n```"
           },
           "response": []
         },
@@ -311,7 +311,7 @@
               "mode": "formdata",
               "formdata": [
                 {
-                  "key": "displayName",
+                  "key": "display_name",
                   "value": "Nirav V",
                   "type": "text"
                 },
@@ -321,18 +321,18 @@
                   "type": "text"
                 },
                 {
-                  "key": "photoUrl",
+                  "key": "photo_url",
                   "type": "file",
                   "src": [],
                   "description": "Upload avatar profile picture file"
                 },
                 {
-                  "key": "countryName",
+                  "key": "country_name",
                   "value": "India",
                   "type": "text"
                 },
                 {
-                  "key": "countryCode",
+                  "key": "country_code",
                   "value": "IN",
                   "type": "text"
                 },
@@ -457,12 +457,12 @@
                   "pm.test('Partner info loaded', () => {",
                   "  pm.expect(res).to.have.property('id');",
                   "});",
-                  "pm.test('Has displayName', () => {",
-                  "  pm.expect(res).to.have.property('displayName');",
+                  "pm.test('Has display_name', () => {",
+                  "  pm.expect(res).to.have.property('display_name');",
                   "});",
                   "pm.test('No private fields exposed', () => {",
                   "  pm.expect(res).to.not.have.property('email');",
-                  "  pm.expect(res).to.not.have.property('googleId');",
+                  "  pm.expect(res).to.not.have.property('google_id');",
                   "});"
                 ]
               }

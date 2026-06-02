@@ -11,6 +11,12 @@ export class UpdateUserDto {
   @MaxLength(20)
   displayName?: string;
 
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(20)
+  display_name?: string;
+
   @ApiPropertyOptional({ maxLength: 120, description: 'Short bio — emoji welcome' })
   @IsOptional()
   @IsString()
@@ -21,6 +27,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   photoUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  photo_url?: string;
 
   @ApiPropertyOptional({ enum: Gender, description: 'Gender (locked once set to male/female)' })
   @IsOptional()
@@ -34,15 +44,29 @@ export class UpdateUserDto {
   @Type(() => Number)
   countryId?: number;
 
+  @IsOptional()
+  @IsInt()
+  @IsPositive()
+  @Type(() => Number)
+  country_id?: number;
+
   @ApiPropertyOptional({ example: 'India' })
   @IsOptional()
   @IsString()
   countryName?: string;
 
+  @IsOptional()
+  @IsString()
+  country_name?: string;
+
   @ApiPropertyOptional({ example: 'IN', description: '2-letter ISO country code' })
   @IsOptional()
   @IsString()
   countryCode?: string;
+
+  @IsOptional()
+  @IsString()
+  country_code?: string;
 
   @ApiPropertyOptional({ description: 'Photo URL to ADD to the gallery (max 6)' })
   @IsOptional()
@@ -70,4 +94,8 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString()
   fcmToken?: string;
+
+  @IsOptional()
+  @IsString()
+  fcm_token?: string;
 }

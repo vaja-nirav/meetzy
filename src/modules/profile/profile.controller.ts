@@ -74,9 +74,17 @@ export class ProfileController {
     const protocol = req.protocol;
     const baseUrl = `${protocol}://${host}`;
 
+    // Map snake_case to camelCase
+    if (dto.display_name !== undefined) dto.displayName = dto.display_name;
+    if (dto.photo_url !== undefined) dto.photoUrl = dto.photo_url;
+    if (dto.country_id !== undefined) dto.countryId = dto.country_id;
+    if (dto.country_name !== undefined) dto.countryName = dto.country_name;
+    if (dto.country_code !== undefined) dto.countryCode = dto.country_code;
+    if (dto.fcm_token !== undefined) dto.fcmToken = dto.fcm_token;
+
     if (files && files.length > 0) {
       const coverImagesFiles = files.filter(f => f.fieldname === 'cover_images');
-      const photoUrlFile = files.find(f => f.fieldname === 'photoUrl');
+      const photoUrlFile = files.find(f => f.fieldname === 'photoUrl' || f.fieldname === 'photo_url');
 
       if (photoUrlFile) {
         dto.photoUrl = saveUploadedFile(photoUrlFile);

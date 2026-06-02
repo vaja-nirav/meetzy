@@ -43,36 +43,36 @@ export class AuthService {
   formatUserResponse(user: User, baseUrl?: string) {
     return {
       id: user.id,
-      googleId: user.googleId,
+      google_id: user.googleId,
       email: user.email,
-      displayName: user.displayName,
+      display_name: user.displayName,
       bio: user.bio ?? null,
-      photoUrl: this.resolveUrl(user.photoUrl, baseUrl),
+      photo_url: this.resolveUrl(user.photoUrl, baseUrl),
       gender: user.gender !== 'other' ? user.gender : null,
-      countryId: user.countryId,
+      country_id: user.countryId,
       country: user.country ? {
         id: user.country.id,
         name: user.country.name,
         code: user.country.code,
-        dialCode: user.country.dialCode,
+        dial_code: user.country.dialCode,
         flag: user.country.flag,
       } : null,
-      countryName: user.countryName ?? null,
-      countryCode: user.countryCode ?? null,
-      isVip: user.isVip,
-      isOnline: user.isOnline,
-      isBanned: user.isBanned,
-      isProfileComplete: user.isProfileComplete,
-      fcmToken: user.fcmToken ?? null,
+      country_name: user.countryName ?? null,
+      country_code: user.countryCode ?? null,
+      is_vip: user.isVip,
+      is_online: user.isOnline,
+      is_banned: user.isBanned,
+      is_profile_complete: user.isProfileComplete,
+      fcm_token: user.fcmToken ?? null,
       coins: user.coins ?? 0,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      created_at: user.createdAt,
+      updated_at: user.updatedAt,
       cover_images: (user.photos || []).map(p => ({
         id: p.id,
-        userId: p.userId,
+        user_id: p.userId,
         url: this.resolveUrl(p.url, baseUrl),
-        sortOrder: p.sortOrder,
-        createdAt: p.createdAt,
+        sort_order: p.sortOrder,
+        created_at: p.createdAt,
       })),
       wallet: {
         balance: user.coins ?? 0,
@@ -85,9 +85,9 @@ export class AuthService {
     const accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken(user);
     return {
-      accessToken,
-      refreshToken,
-      expiresIn: 604800,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      expires_in: 604800,
       user: this.formatUserResponse(user, baseUrl),
     };
   }
@@ -135,7 +135,7 @@ export class AuthService {
       return {
         success: true,
         exists: true,
-        isProfileComplete: user.isProfileComplete,
+        is_profile_complete: user.isProfileComplete,
         data: authData,
       };
     }
@@ -143,7 +143,7 @@ export class AuthService {
     return {
       success: true,
       exists: false,
-      isProfileComplete: false,
+      is_profile_complete: false,
       data: null,
     };
   }
@@ -284,13 +284,13 @@ export class AuthService {
 
     return {
       success: true,
-      isNewUser,
+      is_new_user: isNewUser,
       message: hasProfileData ? 'Profile setup complete' : 'Login successfully',
       data: authData,
     };
   }
 
-  async refreshTokens(token: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async refreshTokens(token: string): Promise<{ access_token: string; refresh_token: string }> {
     let payload: any;
     try {
       payload = this.jwtService.verify(token, {
@@ -304,8 +304,8 @@ export class AuthService {
     if (!user || user.isBanned) throw new UnauthorizedException('User not found');
 
     return {
-      accessToken: this.generateAccessToken(user),
-      refreshToken: this.generateRefreshToken(user),
+      access_token: this.generateAccessToken(user),
+      refresh_token: this.generateRefreshToken(user),
     };
   }
 
