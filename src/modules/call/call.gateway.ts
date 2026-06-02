@@ -178,6 +178,7 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     const { roomId } = data;
     const userId = client.data.userId as number;
+    this.logger.log(`[call:skip] Received skip request from User ${userId} for Room ${roomId}`);
 
     // Notify skipped user — they go to HOME SCREEN (not back to queue)
     client.to(roomId).emit('call:skipped', {
@@ -185,16 +186,22 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
       roomId,
       message: 'Your partner skipped to the next user',
     });
+    this.logger.log(`[call:skip] Notified other users in room ${roomId} with call:skipped`);
 
     // Save partial call record
     try {
       await this.callService.endCall(roomId);
-    } catch {}
+      this.logger.log(`[call:skip] Saved call ended state in database for Room ${roomId}`);
+    } catch (err: any) {
+      this.logger.warn(`[call:skip] Could not end call record: ${err.message}`);
+    }
 
     await client.leave(roomId);
     await this.matchmakingService.closeRoom(roomId);
+    this.logger.log(`[call:skip] User ${userId} left Room ${roomId} and room is closed`);
 
     // Swiping user: confirm skip (Flutter will emit match:next on /matchmaking)
     client.emit('call:skipConfirmed', { roomId });
+    this.logger.log(`[call:skip] Emitted call:skipConfirmed to User ${userId}`);
   }
 }
