@@ -23,7 +23,7 @@ export class UsersService {
   async findById(id: number): Promise<User | null> {
     return this.userRepository.findOne({
       where: { id },
-      relations: { photos: true },
+      relations: { photos: true, country: true },
       order: {
         photos: {
           sortOrder: 'ASC',
@@ -36,7 +36,7 @@ export class UsersService {
   async findByGoogleId(googleId: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: { googleId },
-      relations: { photos: true },
+      relations: { photos: true, country: true },
       order: {
         photos: {
           sortOrder: 'ASC',
@@ -49,7 +49,7 @@ export class UsersService {
   async findByEmail(email: string): Promise<User | null> {
     return this.userRepository.findOne({
       where: { email },
-      relations: { photos: true },
+      relations: { photos: true, country: true },
       order: {
         photos: {
           sortOrder: 'ASC',
@@ -148,7 +148,7 @@ export class UsersService {
 
     const updated = await this.userRepository.findOne({
       where: { id },
-      relations: { photos: true },
+      relations: { photos: true, country: true },
     });
     if (!updated) throw new NotFoundException('User not found');
     return updated;

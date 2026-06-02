@@ -55,7 +55,12 @@
                   "  pm.expect(pm.response.code).to.equal(200);",
                   "  pm.expect(res.success).to.be.true;",
                   "  pm.expect(res).to.have.property('exists');",
-                  "});"
+                  "});",
+                  "if (res.success && res.exists && res.data) {",
+                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "  pm.collectionVariables.set('userId', String(res.data.user.id));",
+                  "}"
                 ]
               }
             }
@@ -200,24 +205,29 @@
                 "type": "text/javascript",
                 "exec": [
                   "const res = pm.response.json();",
-                  "pm.test('Profile loaded', () => {",
-                  "  pm.expect(res).to.have.property('id');",
-                  "});",
-                  "pm.test('Has displayName', () => {",
-                  "  pm.expect(res).to.have.property('displayName');",
-                  "});",
-                  "pm.test('Has gender', () => {",
-                  "  pm.expect(res).to.have.property('gender');",
-                  "});",
-                  "pm.test('Has countryName', () => {",
-                  "  pm.expect(res).to.have.property('countryName');",
-                  "});",
-                  "pm.test('Has countryCode', () => {",
-                  "  pm.expect(res).to.have.property('countryCode');",
-                  "});",
-                  "pm.test('Has wallet', () => {",
-                  "  pm.expect(res.wallet).to.have.property('balance');",
-                  "});"
+                  "if (pm.response.code === 200 && res.success) {",
+                  "  pm.collectionVariables.set('accessToken', res.data.accessToken);",
+                  "  pm.collectionVariables.set('refreshToken', res.data.refreshToken);",
+                  "  ",
+                  "  pm.test('Profile loaded', () => {",
+                  "    pm.expect(res.data.user).to.have.property('id');",
+                  "  });",
+                  "  pm.test('Has displayName', () => {",
+                  "    pm.expect(res.data.user).to.have.property('displayName');",
+                  "  });",
+                  "  pm.test('Has gender', () => {",
+                  "    pm.expect(res.data.user).to.have.property('gender');",
+                  "  });",
+                  "  pm.test('Has countryName', () => {",
+                  "    pm.expect(res.data.user).to.have.property('countryName');",
+                  "  });",
+                  "  pm.test('Has countryCode', () => {",
+                  "    pm.expect(res.data.user).to.have.property('countryCode');",
+                  "  });",
+                  "  pm.test('Has wallet', () => {",
+                  "    pm.expect(res.data.user.wallet).to.have.property('balance');",
+                  "  });",
+                  "}"
                 ]
               }
             }
@@ -236,7 +246,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["profile", "me"]
             },
-            "description": "Returns the full profile of the currently logged-in user.\n\nNote: Response is a raw object — no success wrapper.\n\n```json\n{\n  \"id\": 1,\n  \"displayName\": \"Nirav V\",\n  \"bio\": \"Software Developer | Video chat enthusiast\",\n  \"photoUrl\": \"https://...\",\n  \"countryId\": 5,\n  \"countryName\": \"India\",\n  \"countryCode\": \"IN\",\n  \"gender\": \"male\",\n  \"isVip\": false,\n  \"isOnline\": true,\n  \"isProfileComplete\": true,\n  \"coins\": 0,\n  \"photos\": [],\n  \"wallet\": { \"balance\": 0, \"currency\": \"coins\" },\n  \"createdAt\": \"2026-06-01T00:00:00.000Z\",\n  \"updatedAt\": \"2026-06-01T00:00:00.000Z\"\n}\n```"
+            "description": "Returns the full profile of the currently logged-in user.\n\nNote: Response is wrapped inside a data object alongside refreshed access and refresh tokens.\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"accessToken\": \"...\",\n    \"refreshToken\": \"...\",\n    \"expiresIn\": 604800,\n    \"user\": {\n      \"id\": 6,\n      \"googleId\": \"111590874060848869509\",\n      \"email\": \"vajanirav2003@gmail.com\",\n      \"displayName\": \"Nirav Vaja\",\n      \"bio\": \"Software Developer | Video chat enthusiast\",\n      \"photoUrl\": \"https://...\",\n      \"gender\": \"male\",\n      \"countryId\": 13,\n      \"country\": {\n        \"id\": 13,\n        \"name\": \"Bahrain\",\n        \"code\": \"BH\",\n        \"dialCode\": \"+973\",\n        \"flag\": \"🇧🇭\"\n      },\n      \"countryName\": \"Bahrain\",\n      \"countryCode\": \"BH\",\n      \"isVip\": false,\n      \"isOnline\": true,\n      \"isBanned\": false,\n      \"isProfileComplete\": true,\n      \"fcmToken\": null,\n      \"coins\": 0,\n      \"createdAt\": \"2026-06-02T12:40:52.632Z\",\n      \"updatedAt\": \"2026-06-02T15:03:33.000Z\",\n      \"photos\": [],\n      \"wallet\": { \"balance\": 0, \"currency\": \"coins\" }\n    }\n  }\n}\n```"
           },
           "response": []
         },

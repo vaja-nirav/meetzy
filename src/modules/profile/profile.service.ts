@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { WalletService } from '../wallet/wallet.service';
+import { AuthService } from '../auth/auth.service';
 import { UpdateUserDto } from '../users/dto/update-user.dto';
 import { SetupProfileDto } from './dto/setup-profile.dto';
 import { Gender } from '../users/entities/user.entity';
@@ -15,6 +16,7 @@ export class ProfileService {
   constructor(
     private readonly usersService: UsersService,
     private readonly walletService: WalletService,
+    private readonly authService: AuthService,
   ) {}
 
   async setupProfile(userId: number, dto: SetupProfileDto) {
@@ -47,8 +49,11 @@ export class ProfileService {
   async getOwnProfile(userId: number) {
     const user = await this.usersService.findById(userId);
     if (!user) throw new NotFoundException('User not found');
-    const balance = await this.walletService.getBalance(userId);
-    return { ...user, wallet: balance };
+    const authData = this.authService.getAuthResponse(user);
+    return {
+      success: true,
+      data: authData,
+    };
   }
 
   async updateProfile(userId: number, dto: UpdateUserDto) {

@@ -31,6 +31,58 @@ export class AuthService {
     return clientIds.length > 1 ? clientIds : clientIds[0] || '';
   }
 
+  formatUserResponse(user: User) {
+    return {
+      id: user.id,
+      googleId: user.googleId,
+      email: user.email,
+      displayName: user.displayName,
+      bio: user.bio ?? null,
+      photoUrl: user.photoUrl,
+      gender: user.gender !== 'other' ? user.gender : null,
+      countryId: user.countryId,
+      country: user.country ? {
+        id: user.country.id,
+        name: user.country.name,
+        code: user.country.code,
+        dialCode: user.country.dialCode,
+        flag: user.country.flag,
+      } : null,
+      countryName: user.countryName ?? null,
+      countryCode: user.countryCode ?? null,
+      isVip: user.isVip,
+      isOnline: user.isOnline,
+      isBanned: user.isBanned,
+      isProfileComplete: user.isProfileComplete,
+      fcmToken: user.fcmToken ?? null,
+      coins: user.coins ?? 0,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+      photos: (user.photos || []).map(p => ({
+        id: p.id,
+        userId: p.userId,
+        url: p.url,
+        sortOrder: p.sortOrder,
+        createdAt: p.createdAt,
+      })),
+      wallet: {
+        balance: user.coins ?? 0,
+        currency: 'coins',
+      },
+    };
+  }
+
+  getAuthResponse(user: User) {
+    const accessToken = this.generateAccessToken(user);
+    const refreshToken = this.generateRefreshToken(user);
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: 604800,
+      user: this.formatUserResponse(user),
+    };
+  }
+
   async checkAccountStatus(tokenId: string) {
     if (!tokenId) {
       throw new UnauthorizedException('token_id is required');
@@ -65,29 +117,25 @@ export class AuthService {
       if (user && !user.googleId) {
         user.googleId = googlePayload.sub;
         await this.usersService.update(user.id, { googleId: googlePayload.sub } as any);
+        user = await this.usersService.findById(user.id);
       }
+    }
+
+    if (user) {
+      const authData = this.getAuthResponse(user);
+      return {
+        success: true,
+        exists: true,
+        isProfileComplete: user.isProfileComplete,
+        data: authData,
+      };
     }
 
     return {
       success: true,
-      exists: !!user,
-      isProfileComplete: user ? user.isProfileComplete : false,
-      user: user
-        ? {
-            id: user.id,
-            email: user.email,
-            displayName: user.displayName,
-            photoUrl: user.photoUrl,
-            gender: user.gender !== 'other' ? user.gender : null,
-            countryName: user.countryName ?? null,
-            countryCode: user.countryCode ?? null,
-            isVip: user.isVip,
-            isOnline: user.isOnline,
-            isProfileComplete: user.isProfileComplete,
-            walletBalance: user.coins ?? 0,
-            createdAt: user.createdAt,
-          }
-        : null,
+      exists: false,
+      isProfileComplete: false,
+      data: null,
     };
   }
 
@@ -222,33 +270,14 @@ export class AuthService {
 
     if (user.isBanned) throw new UnauthorizedException('Account is banned');
 
-    // 5. Generate tokens
-    const accessToken = this.generateAccessToken(user);
-    const refreshToken = this.generateRefreshToken(user);
+    // 5. Generate tokens and format response
+    const authData = this.getAuthResponse(user);
 
     return {
       success: true,
       isNewUser,
       message: hasProfileData ? 'Profile setup complete' : 'Login successfully',
-      data: {
-        accessToken,
-        refreshToken,
-        expiresIn: 604800,
-        user: {
-          id: user.id,
-          email: user.email,
-          displayName: user.displayName,
-          photoUrl: user.photoUrl,
-          gender: user.gender !== 'other' ? user.gender : null,
-          countryName: user.countryName ?? null,
-          countryCode: user.countryCode ?? null,
-          isVip: user.isVip,
-          isOnline: user.isOnline,
-          isProfileComplete: user.isProfileComplete,
-          walletBalance: user.coins ?? 0,
-          createdAt: user.createdAt,
-        },
-      },
+      data: authData,
     };
   }
 
@@ -281,7 +310,7 @@ export class AuthService {
     );
   }
 
-  private generateRefreshToken(user: User): string {
+  generateRefreshToken(user: User): string {
     return this.jwtService.sign(
       { sub: user.id, type: 'refresh' },
       {
