@@ -31,14 +31,23 @@ export class AuthService {
     return clientIds.length > 1 ? clientIds : clientIds[0] || '';
   }
 
-  formatUserResponse(user: User) {
+  resolveUrl(url: string | null, baseUrl?: string): string | null {
+    if (!url) return null;
+    if (url.startsWith('/uploads/')) {
+      const base = baseUrl || process.env.APP_URL || `http://localhost:${process.env.PORT || 3001}`;
+      return `${base}${url}`;
+    }
+    return url;
+  }
+
+  formatUserResponse(user: User, baseUrl?: string) {
     return {
       id: user.id,
       googleId: user.googleId,
       email: user.email,
       displayName: user.displayName,
       bio: user.bio ?? null,
-      photoUrl: user.photoUrl,
+      photoUrl: this.resolveUrl(user.photoUrl, baseUrl),
       gender: user.gender !== 'other' ? user.gender : null,
       countryId: user.countryId,
       country: user.country ? {
@@ -61,7 +70,7 @@ export class AuthService {
       photos: (user.photos || []).map(p => ({
         id: p.id,
         userId: p.userId,
-        url: p.url,
+        url: this.resolveUrl(p.url, baseUrl),
         sortOrder: p.sortOrder,
         createdAt: p.createdAt,
       })),
@@ -72,18 +81,18 @@ export class AuthService {
     };
   }
 
-  getAuthResponse(user: User) {
+  getAuthResponse(user: User, baseUrl?: string) {
     const accessToken = this.generateAccessToken(user);
     const refreshToken = this.generateRefreshToken(user);
     return {
       accessToken,
       refreshToken,
       expiresIn: 604800,
-      user: this.formatUserResponse(user),
+      user: this.formatUserResponse(user, baseUrl),
     };
   }
 
-  async checkAccountStatus(tokenId: string) {
+  async checkAccountStatus(tokenId: string, baseUrl?: string) {
     if (!tokenId) {
       throw new UnauthorizedException('token_id is required');
     }
@@ -122,7 +131,7 @@ export class AuthService {
     }
 
     if (user) {
-      const authData = this.getAuthResponse(user);
+      const authData = this.getAuthResponse(user, baseUrl);
       return {
         success: true,
         exists: true,
@@ -194,7 +203,7 @@ export class AuthService {
     };
   }
 
-  async unifiedLogin(dto: UnifiedLoginDto) {
+  async unifiedLogin(dto: UnifiedLoginDto, baseUrl?: string) {
     // 1. Verify Google token
     let googlePayload: any;
     if (dto.token_id === 'mock_google_token') {
@@ -271,7 +280,7 @@ export class AuthService {
     if (user.isBanned) throw new UnauthorizedException('Account is banned');
 
     // 5. Generate tokens and format response
-    const authData = this.getAuthResponse(user);
+    const authData = this.getAuthResponse(user, baseUrl);
 
     return {
       success: true,

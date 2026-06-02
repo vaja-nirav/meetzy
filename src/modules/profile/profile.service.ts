@@ -9,7 +9,7 @@ import { WalletService } from '../wallet/wallet.service';
 import { AuthService } from '../auth/auth.service';
 import { UpdateUserDto } from '../users/dto/update-user.dto';
 import { SetupProfileDto } from './dto/setup-profile.dto';
-import { Gender } from '../users/entities/user.entity';
+import { Gender, User } from '../users/entities/user.entity';
 
 @Injectable()
 export class ProfileService {
@@ -46,17 +46,33 @@ export class ProfileService {
     };
   }
 
-  async getOwnProfile(userId: number) {
+  resolveUserUrls(user: User, baseUrl?: string): User {
+    if (!baseUrl) return user;
+    if (user.photoUrl && user.photoUrl.startsWith('/uploads/')) {
+      user.photoUrl = `${baseUrl}${user.photoUrl}`;
+    }
+    if (user.photos) {
+      user.photos = user.photos.map(p => {
+        if (p.url && p.url.startsWith('/uploads/')) {
+          p.url = `${baseUrl}${p.url}`;
+        }
+        return p;
+      });
+    }
+    return user;
+  }
+
+  async getOwnProfile(userId: number, baseUrl?: string) {
     const user = await this.usersService.findById(userId);
     if (!user) throw new NotFoundException('User not found');
-    const authData = this.authService.getAuthResponse(user);
+    const authData = this.authService.getAuthResponse(user, baseUrl);
     return {
       success: true,
       data: authData,
     };
   }
 
-  async updateProfile(userId: number, dto: UpdateUserDto) {
+  async updateProfile(userId: number, dto: UpdateUserDto, baseUrl?: string) {
     const user = await this.usersService.findById(userId);
     if (!user) throw new NotFoundException('User not found');
 
@@ -69,7 +85,8 @@ export class ProfileService {
       throw new BadRequestException('Gender cannot be changed once set');
     }
 
-    return this.usersService.update(userId, dto);
+    const updated = await this.usersService.update(userId, dto);
+    return this.resolveUserUrls(updated, baseUrl);
   }
 
   async getPublicProfile(userId: number) {

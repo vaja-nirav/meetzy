@@ -1,5 +1,6 @@
-import { Controller, Post, Body, Get, UseGuards, Query, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Query, Req, UseInterceptors } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { AuthService } from './auth.service';
 import { RefreshTokenDto } from './dto/google-auth.dto';
 import { UnifiedLoginDto } from './dto/unified-login.dto';
@@ -14,11 +15,15 @@ export class AuthController {
 
   @Get('check-account')
   @ApiOperation({ summary: 'Check if an account exists by verifying Google token_id' })
-  async checkAccount(@Query('token_id') tokenId: string) {
-    return this.authService.checkAccountStatus(tokenId);
+  async checkAccount(@Query('token_id') tokenId: string, @Req() req: any) {
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const baseUrl = `${protocol}://${host}`;
+    return this.authService.checkAccountStatus(tokenId, baseUrl);
   }
 
   @Post('login')
+  @UseInterceptors(AnyFilesInterceptor())
   @ApiOperation({
     summary: 'Unified Login + Profile Setup',
     description:
@@ -26,8 +31,11 @@ export class AuthController {
       'Call 2 (setup screen): send token_id + display_name + gender + country_code → returns isProfileComplete: true → redirect to home.\n' +
       'Call 3 (returning user): send token_id only → returns isProfileComplete: true → redirect to home.',
   })
-  async login(@Body() dto: UnifiedLoginDto) {
-    return this.authService.unifiedLogin(dto);
+  async login(@Body() dto: UnifiedLoginDto, @Req() req: any) {
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const baseUrl = `${protocol}://${host}`;
+    return this.authService.unifiedLogin(dto, baseUrl);
   }
 
   @Post('refresh')

@@ -126,21 +126,47 @@
           ],
           "request": {
             "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
+            "header": [],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token_id\":     \"PASTE_YOUR_GOOGLE_ID_TOKEN_HERE\",\n  \"display_name\": \"John Doe\",\n  \"gender\":       \"male\",\n  \"country_name\": \"India\",\n  \"country_code\": \"IN\",\n  \"email\":        \"nirav@gmail.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "token_id",
+                  "value": "mock_google_token",
+                  "type": "text",
+                  "description": "Google ID token (supports 'mock_google_token' in development)"
+                },
+                {
+                  "key": "display_name",
+                  "value": "John Doe",
+                  "type": "text",
+                  "description": "Optional: User's name for setup"
+                },
+                {
+                  "key": "gender",
+                  "value": "male",
+                  "type": "text",
+                  "description": "Optional: male/female/other"
+                },
+                {
+                  "key": "country_name",
+                  "value": "India",
+                  "type": "text",
+                  "description": "Optional: Country name"
+                },
+                {
+                  "key": "country_code",
+                  "value": "IN",
+                  "type": "text",
+                  "description": "Optional: 2-letter ISO country code"
+                },
+                {
+                  "key": "email",
+                  "value": "vajanirav2003@gmail.com",
+                  "type": "text",
+                  "description": "Optional: User's email"
                 }
-              }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
@@ -279,21 +305,48 @@
                 "key": "Authorization",
                 "value": "Bearer {{accessToken}}",
                 "type": "text"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
               }
             ],
             "body": {
-              "mode": "raw",
-              "raw": "{\n  \"displayName\": \"Nirav V\",\n  \"bio\": \"Software Developer | Video chat enthusiast\",\n  \"photoUrl\": \"https://images.unsplash.com/photo-1535713875002-d1d0cf377fde\",\n  \"countryName\": \"India\",\n  \"countryCode\": \"IN\",\n  \"gender\": \"male\",\n  \"urls\": [\n    \"https://images.unsplash.com/photo-1494790108377-be9c29b29330\",\n    \"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d\"\n  ]\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "displayName",
+                  "value": "Nirav V",
+                  "type": "text"
+                },
+                {
+                  "key": "bio",
+                  "value": "Software Developer | Video chat enthusiast",
+                  "type": "text"
+                },
+                {
+                  "key": "photoUrl",
+                  "value": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+                  "type": "text"
+                },
+                {
+                  "key": "countryName",
+                  "value": "India",
+                  "type": "text"
+                },
+                {
+                  "key": "countryCode",
+                  "value": "IN",
+                  "type": "text"
+                },
+                {
+                  "key": "gender",
+                  "value": "male",
+                  "type": "text"
+                },
+                {
+                  "key": "urls",
+                  "value": "https://images.unsplash.com/photo-1494790108377-be9c29b29330,https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+                  "type": "text",
+                  "description": "Comma-separated list of photo URLs to replace gallery with"
                 }
-              }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/profile/me",

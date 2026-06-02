@@ -1,5 +1,6 @@
 import { IsEnum, IsInt, IsOptional, IsPositive, IsString, MaxLength, MinLength, IsArray } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
 import { Gender } from '../entities/user.entity';
 
 export class UpdateUserDto {
@@ -30,6 +31,7 @@ export class UpdateUserDto {
   @IsOptional()
   @IsInt()
   @IsPositive()
+  @Type(() => Number)
   countryId?: number;
 
   @ApiPropertyOptional({ example: 'India' })
@@ -50,6 +52,17 @@ export class UpdateUserDto {
   @ApiPropertyOptional({ type: [String], description: 'List of photo URLs to REPLACE the gallery with (max 6)' })
   @IsOptional()
   @IsArray()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        if (Array.isArray(parsed)) return parsed;
+      } catch {
+        return value.split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+    return value;
+  })
   @IsString({ each: true })
   urls?: string[];
 
