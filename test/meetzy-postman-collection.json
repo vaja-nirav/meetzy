@@ -8,7 +8,7 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3000",
+      "value": "http://localhost:3001",
       "type": "string"
     },
     {
@@ -105,38 +105,45 @@
               "host": ["{{baseUrl}}"],
               "path": ["auth", "login"]
             },
-            "description": "One API for all 3 Flutter scenarios. token_id is always required. All other fields are optional — remove them when not needed.\n\n──────────────────────────────────────────\nUSAGE GUIDE\n──────────────────────────────────────────\n\nScenario A — Login Screen (new or returning):\nSend only token_id. Remove all other fields.\n→ New user:      isProfileComplete: false → show Profile Setup Screen\n→ Returning user: isProfileComplete: true  → go to Home Screen\n\nScenario B — Profile Setup Screen:\nSend token_id + display_name + gender + country_name + country_code.\n→ Backend saves profile, isProfileComplete: true → go to Home Screen\n\n──────────────────────────────────────────\nFLUTTER NAVIGATION RULE\n──────────────────────────────────────────\nif (res.data.user.isProfileComplete == false) → Profile Setup Screen\nif (res.data.user.isProfileComplete == true)  → Home Screen\n\n──────────────────────────────────────────\nEXPECTED RESPONSE\n──────────────────────────────────────────\n```json\n{\n  \"success\": true,\n  \"isNewUser\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"accessToken\": \"eyJhbG...\",\n    \"refreshToken\": \"eyJhbG...\",\n    \"expiresIn\": 604800,\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"nirav@gmail.com\",\n      \"displayName\": \"John Doe\",\n      \"photoUrl\": \"https://...\",\n      \"gender\": \"male\",\n      \"countryName\": \"India\",\n      \"countryCode\": \"IN\",\n      \"isVip\": false,\n      \"isOnline\": true,\n      \"isProfileComplete\": false,\n      \"walletBalance\": 0,\n      \"createdAt\": \"2026-06-01T00:00:00.000Z\"\n    }\n  }\n}\n```"
+            "description": "One API for all Flutter auth scenarios. token_id is always required. All other fields are optional.\n\n──────────────────────────────────────────\nUSAGE GUIDE\n──────────────────────────────────────────\n\nScenario A — Login Screen (new or returning):\nSend only token_id. Remove all other fields.\n→ New user:       isProfileComplete: false → show Profile Setup Screen\n→ Returning user: isProfileComplete: true  → go to Home Screen\n\nScenario B — Profile Setup Screen:\nSend token_id + display_name + gender + country_name + country_code.\n→ Backend saves profile, isProfileComplete: true → go to Home Screen\n\n──────────────────────────────────────────\nFLUTTER NAVIGATION RULE\n──────────────────────────────────────────\nif (res.data.user.isProfileComplete == false) → Profile Setup Screen\nif (res.data.user.isProfileComplete == true)  → Home Screen\n\n──────────────────────────────────────────\nEXPECTED RESPONSE\n──────────────────────────────────────────\n```json\n{\n  \"success\": true,\n  \"isNewUser\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"accessToken\": \"eyJhbG...\",\n    \"refreshToken\": \"eyJhbG...\",\n    \"expiresIn\": 604800,\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"nirav@gmail.com\",\n      \"displayName\": \"John Doe\",\n      \"photoUrl\": \"https://...\",\n      \"gender\": \"male\",\n      \"countryName\": \"India\",\n      \"countryCode\": \"IN\",\n      \"isVip\": false,\n      \"isOnline\": true,\n      \"isProfileComplete\": false,\n      \"walletBalance\": 0,\n      \"createdAt\": \"2026-06-01T00:00:00.000Z\"\n    }\n  }\n}\n```"
           },
           "response": []
         },
         {
-          "name": "Check Account Status",
+          "name": "Logout",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "  pm.collectionVariables.set('accessToken', '');",
+                  "  pm.collectionVariables.set('refreshToken', '');",
+                  "  pm.test('Logout succeeded', () => {",
+                  "    pm.expect(res.success).to.be.true;",
+                  "  });",
+                  "}"
+                ]
+              }
+            }
+          ],
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
             "url": {
-              "raw": "{{baseUrl}}/auth/check-account?email=nirav@gmail.com&googleId=111590874068048869509",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "auth",
-                "check-account"
-              ],
-              "query": [
-                {
-                  "key": "email",
-                  "value": "nirav@gmail.com",
-                  "description": "Optional email to check"
-                },
-                {
-                  "key": "googleId",
-                  "value": "111590874068048869509",
-                  "description": "Optional googleId to check"
-                }
-              ]
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
             },
-            "description": "Checks if an account already exists in the database by email or Google ID. Returns { exists: true/false, isProfileComplete: true/false }."
+            "description": "Logs out the current user, invalidates the access token in Redis, and sets their online status to false."
           },
           "response": []
         }
@@ -144,8 +151,9 @@
     },
     {
       "name": "2. Profile Update",
-      "description": "Allows user to fetch and update their profile. Use GET first to load current data, then PATCH to send only the fields that changed.",
-      "item": [
+      "description": "Use GET first to load current data, then PATCH to send only the fields that changed. All PATCH fields are optional.",
+      "item": 
+      [
         {
           "name": "Get My Profile",
           "event": [
@@ -155,20 +163,23 @@
                 "type": "text/javascript",
                 "exec": [
                   "const res = pm.response.json();",
-                  "pm.test('Profile loaded successfully', () => {",
-                  "  pm.expect(res.success).to.be.true;",
+                  "pm.test('Profile loaded', () => {",
+                  "  pm.expect(res).to.have.property('id');",
                   "});",
                   "pm.test('Has displayName', () => {",
-                  "  pm.expect(res.data).to.have.property('displayName');",
+                  "  pm.expect(res).to.have.property('displayName');",
                   "});",
                   "pm.test('Has gender', () => {",
-                  "  pm.expect(res.data).to.have.property('gender');",
+                  "  pm.expect(res).to.have.property('gender');",
                   "});",
                   "pm.test('Has countryName', () => {",
-                  "  pm.expect(res.data).to.have.property('countryName');",
+                  "  pm.expect(res).to.have.property('countryName');",
                   "});",
                   "pm.test('Has countryCode', () => {",
-                  "  pm.expect(res.data).to.have.property('countryCode');",
+                  "  pm.expect(res).to.have.property('countryCode');",
+                  "});",
+                  "pm.test('Has wallet', () => {",
+                  "  pm.expect(res.wallet).to.have.property('balance');",
                   "});"
                 ]
               }
@@ -188,7 +199,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["profile", "me"]
             },
-            "description": "Returns the full profile of the currently logged-in user.\n\nNote: DB columns are snake_case (e.g. display_name, photo_url) but the JSON API response uses camelCase (TypeScript property names).\n\nExpected success response:\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"displayName\": \"Nirav V\",\n    \"bio\": \"Software Developer | Video chat enthusiast\",\n    \"photoUrl\": \"https://...\",\n    \"countryId\": 5,\n    \"countryName\": \"India\",\n    \"countryCode\": \"IN\",\n    \"gender\": \"male\",\n    \"isVip\": false,\n    \"isOnline\": true,\n    \"isProfileComplete\": true,\n    \"coins\": 0,\n    \"urls\": [\n      \"https://...\",\n      \"https://...\"\n    ],\n    \"wallet\": { \"balance\": 0, \"currency\": \"coins\" },\n    \"createdAt\": \"2026-06-01T00:00:00.000Z\",\n    \"updatedAt\": \"2026-06-01T00:00:00.000Z\"\n  }\n}\n```"
+            "description": "Returns the full profile of the currently logged-in user.\n\nNote: Response is a raw object — no success wrapper.\n\n```json\n{\n  \"id\": 1,\n  \"displayName\": \"Nirav V\",\n  \"bio\": \"Software Developer | Video chat enthusiast\",\n  \"photoUrl\": \"https://...\",\n  \"countryId\": 5,\n  \"countryName\": \"India\",\n  \"countryCode\": \"IN\",\n  \"gender\": \"male\",\n  \"isVip\": false,\n  \"isOnline\": true,\n  \"isProfileComplete\": true,\n  \"coins\": 0,\n  \"photos\": [],\n  \"wallet\": { \"balance\": 0, \"currency\": \"coins\" },\n  \"createdAt\": \"2026-06-01T00:00:00.000Z\",\n  \"updatedAt\": \"2026-06-01T00:00:00.000Z\"\n}\n```"
           },
           "response": []
         },
@@ -201,12 +212,14 @@
                 "type": "text/javascript",
                 "exec": [
                   "const res = pm.response.json();",
-                  "pm.test('Profile updated successfully', () => {",
-                  "  pm.expect(res.success).to.be.true;",
+                  "pm.test('Profile updated', () => {",
+                  "  pm.expect(res).to.have.property('id');",
                   "});",
-                  "pm.test('Updated data returned', () => {",
-                  "  pm.expect(res.data).to.have.property('displayName');",
-                  "  pm.expect(res.data).to.have.property('updatedAt');",
+                  "pm.test('displayName present', () => {",
+                  "  pm.expect(res).to.have.property('displayName');",
+                  "});",
+                  "pm.test('updatedAt present', () => {",
+                  "  pm.expect(res).to.have.property('updatedAt');",
                   "});"
                 ]
               }
@@ -228,7 +241,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"displayName\": \"Nirav V\",\n  \"bio\": \"Software Developer | Video chat enthusiast\",\n  \"photoUrl\": \"https://images.unsplash.com/photo-1535713875002-d1d0cf377fde\",\n  \"countryId\": 5,\n  \"gender\": \"male\",\n  \"urls\": [\n    \"https://images.unsplash.com/photo-1494790108377-be9c29b29330\",\n    \"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d\"\n  ]\n}",
+              "raw": "{\n  \"displayName\": \"Nirav V\",\n  \"bio\": \"Software Developer | Video chat enthusiast\",\n  \"photoUrl\": \"https://images.unsplash.com/photo-1535713875002-d1d0cf377fde\",\n  \"countryName\": \"India\",\n  \"countryCode\": \"IN\",\n  \"gender\": \"male\",\n  \"urls\": [\n    \"https://images.unsplash.com/photo-1494790108377-be9c29b29330\",\n    \"https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d\"\n  ]\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -240,7 +253,53 @@
               "host": ["{{baseUrl}}"],
               "path": ["profile", "me"]
             },
-            "description": "Updates user profile fields. All fields are optional — only send what needs to change."
+            "description": "Updates user profile. All fields are optional — send only what changed.\nReturns the updated User object (no success wrapper)."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Users (Radar)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Active users loaded', () => {",
+                  "  pm.expect(res).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/active?gender=all&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "active"],
+              "query": [
+                {
+                  "key": "gender",
+                  "value": "all",
+                  "description": "Optional: 'all' (80% F / 20% M), 'female', 'male'"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Optional: number of users to fetch"
+                }
+              ]
+            },
+            "description": "Returns a randomized list of active online users for the radar home screen.\n\nFilters:\n- gender=all (Default): returns 80% female and 20% male, shuffled randomly.\n- gender=female: returns only females.\n- gender=male: returns only males."
           },
           "response": []
         }
@@ -248,7 +307,7 @@
     },
     {
       "name": "3. Video Calling",
-      "description": "Video calling uses 1 HTTP route + 2 WebSocket namespaces.\n\nHTTP: GET /users/:id — loads partner info on call screen overlay.\n\nWebSocket /matchmaking — handles finding, ringing, accepting, and skipping matches.\n\nWebSocket /call — exchanges WebRTC Offer/Answer signaling directly between two devices.\n\nNew Upgrades:\n- Anti-Failure Audio: microphones launch on all devices including mobile.\n- Accurate Call Durations: calculated in single Node.js context, no negative time logs.\n- Double-Spending Safe Coins: balance locked during purchase/spend, logs in purchased_coins and used_coins.",
+      "description": "Video calling uses 1 HTTP route + 2 WebSocket namespaces.\n\nHTTP: GET /users/:id — loads partner info on call screen.\nWebSocket /matchmaking — finding, ringing, accepting, skipping.\nWebSocket /call — join room, WebRTC SDP/ICE relay, end or skip call.",
       "item": [
         {
           "name": "Get Partner Info",
@@ -260,14 +319,14 @@
                 "exec": [
                   "const res = pm.response.json();",
                   "pm.test('Partner info loaded', () => {",
-                  "  pm.expect(res.success).to.be.true;",
+                  "  pm.expect(res).to.have.property('id');",
                   "});",
-                  "pm.test('Has display name', () => {",
-                  "  pm.expect(res.data).to.have.property('displayName');",
+                  "pm.test('Has displayName', () => {",
+                  "  pm.expect(res).to.have.property('displayName');",
                   "});",
                   "pm.test('No private fields exposed', () => {",
-                  "  pm.expect(res.data).to.not.have.property('email');",
-                  "  pm.expect(res.data).to.not.have.property('refreshToken');",
+                  "  pm.expect(res).to.not.have.property('email');",
+                  "  pm.expect(res).to.not.have.property('googleId');",
                   "});"
                 ]
               }
@@ -287,7 +346,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["users", "{{partnerId}}"]
             },
-            "description": "HTTP Route: GET /users/:id\n\nLoads partner name, photo, country, gender on the video call screen overlay when a match is found.\n\nSet the `partnerId` collection variable before running this request."
+            "description": "Loads partner's public info (name, photo, country, gender) to show on the call screen overlay.\nSet the `partnerId` collection variable to the partner's user ID before running."
           },
           "response": []
         },
@@ -297,13 +356,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "ws://localhost:3000/matchmaking",
+              "raw": "ws://localhost:3001/matchmaking",
               "protocol": "ws",
               "host": ["localhost"],
-              "port": "3000",
+              "port": "3001",
               "path": ["matchmaking"]
             },
-            "description": "════ WEBSOCKET — NOT A REST API ════\n\nThis is a WebSocket namespace, not HTTP.\nDo NOT click Send here. Follow the steps below.\n\n──────────────────────────────────────────\nHOW TO TEST IN POSTMAN:\n──────────────────────────────────────────\n1. Click New → WebSocket Request\n2. Enter URL: ws://localhost:3000/matchmaking\n3. Under Headers add:\n   Authorization: Bearer {{accessToken}}\n4. Click Connect\n\n──────────────────────────────────────────\nEVENTS TO SEND: FLUTTER → BACKEND\n──────────────────────────────────────────\n\n► match:joinQueue\n{\n  \"userId\": \"{{userId}}\",\n  \"gender\": \"male\",\n  \"country\": \"IN\",\n  \"isVip\": false\n}\n→ Adds user to Redis matchmaking queue\n→ Matching engine starts searching\n\n► match:leaveQueue\n{\n  \"userId\": \"{{userId}}\"\n}\n→ Removes user from queue\n\n► match:nextMatch  ← SWIPE RIGHT TO LEFT\n{\n  \"roomId\": \"{{roomId}}\",\n  \"userId\": \"{{userId}}\"\n}\n→ Closes current room\n→ Other user gets call:partnerLeft event\n→ THIS user re-joins queue automatically\n→ New match:found sent when new partner found\n\n► match:ping  (send every 30 seconds)\n{\n  \"userId\": \"{{userId}}\"\n}\n→ Keeps user alive in Redis queue\n\n──────────────────────────────────────────\nEVENTS RECEIVED: BACKEND → FLUTTER\n──────────────────────────────────────────\n\n◄ match:waiting\n{\n  \"message\": \"Looking for match...\",\n  \"queueSize\": 5\n}\n\n◄ match:found\n{\n  \"roomId\": \"uuid-room-id\",\n  \"partner\": {\n    \"userId\": \"uuid\",\n    \"displayName\": \"Jane\",\n    \"photoUrl\": \"http://...\",\n    \"country\": \"IN\",\n    \"gender\": \"female\",\n    \"isVip\": false,\n    \"age\": 23\n  }\n}\n\n◄ match:error\n{\n  \"message\": \"Queue error, please retry\"\n}"
+            "description": "════ WEBSOCKET — NOT A REST API ════\n\nNamespace: /matchmaking\nHandles: finding users, ringing, accepting, declining, cancelling, skipping.\n\n──────────────────────────────────────────\nHOW TO TEST IN POSTMAN\n──────────────────────────────────────────\n1. Click New → WebSocket Request\n2. URL: ws://localhost:3001/matchmaking\n3. Headers → add:  Authorization: Bearer {{accessToken}}\n4. Click Connect\n\n──────────────────────────────────────────\nEVENTS TO SEND: FLUTTER → BACKEND\n──────────────────────────────────────────\n\n► match:findUser  (User A clicks Connect button — no body)\n→ Backend picks a random available user (User B)\n→ User B receives ◄ match:incomingCall\n→ User A receives ◄ match:calling\n\n► match:acceptCall  (User B taps Accept)\n{ \"callId\": \"uuid\" }\n→ Both receive ◄ match:callAccepted with roomId\n\n► match:declineCall  (User B taps Decline)\n{ \"callId\": \"uuid\" }\n→ User A receives ◄ match:callDeclined\n\n► match:cancelCall  (User A cancels before B responds)\n{ \"callId\": \"uuid\" }\n→ User B popup dismissed ◄ match:callCancelled\n\n► match:next  (after call:skipConfirmed — find next user)\n(no body)\n→ Immediately finds another random user to ring\n\n► match:backToAvailable  (after call ends, re-enter pool)\n(no body)\n\n──────────────────────────────────────────\nEVENTS RECEIVED: BACKEND → FLUTTER\n──────────────────────────────────────────\n\n◄ match:incomingCall  (to callee User B)\n{\n  \"callId\": \"uuid\",\n  \"caller\": {\n    \"id\": 1,\n    \"displayName\": \"John\",\n    \"photoUrl\": \"https://...\",\n    \"bio\": \"...\",\n    \"gender\": \"male\",\n    \"country\": { \"name\": \"India\", \"code\": \"IN\" }\n  }\n}\n\n◄ match:calling  (to caller User A)\n{\n  \"callId\": \"uuid\",\n  \"calleeId\": 2\n}\n\n◄ match:callAccepted  (to BOTH users)\n{\n  \"roomId\": \"uuid-room-id\",\n  \"partnerId\": 2,\n  \"iceServers\": [\n    { \"urls\": \"stun:stun.l.google.com:19302\" },\n    { \"urls\": \"turn:...\", \"username\": \"meetzy\", \"credential\": \"...\" }\n  ]\n}\n→ Save roomId → connect to /call WebSocket\n\n◄ match:callDeclined   { \"message\": \"User declined your call\" }\n◄ match:callCancelled  { \"callId\": \"uuid\" }\n◄ match:callExpired    { \"message\": \"Call request expired or cancelled\" }\n◄ match:noUsersAvailable  { \"message\": \"No users are available right now.\" }\n◄ match:partnerLeft    { \"roomId\": \"uuid\" }  ← partner disconnected"
           },
           "response": []
         },
@@ -313,13 +372,17 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "ws://localhost:3000/call",
+              "raw": "ws://localhost:3001/call",
               "protocol": "ws",
-              "host": ["localhost"],
-              "port": "3000",
-              "path": ["call"]
+              "host": [
+                "localhost"
+              ],
+              "port": "3001",
+              "path": [
+                "call"
+              ]
             },
-            "description": "════ WEBSOCKET — NOT A REST API ════\n\nThis is a WebSocket namespace, not HTTP.\nBackend DOES NOT process video.\nVideo flows peer-to-peer between devices.\nBackend only relays SDP and ICE signals.\n\n──────────────────────────────────────────\nHOW TO TEST IN POSTMAN:\n──────────────────────────────────────────\n1. Click New → WebSocket Request\n2. Enter URL: ws://localhost:3000/call\n3. Under Headers add:\n   Authorization: Bearer {{accessToken}}\n4. Click Connect\n\n──────────────────────────────────────────\nEVENTS TO SEND: FLUTTER → BACKEND\n──────────────────────────────────────────\n\n► call:sdpOffer  (User A sends after match:found)\n{\n  \"roomId\": \"{{roomId}}\",\n  \"sdp\": {\n    \"type\": \"offer\",\n    \"sdp\": \"v=0\\r\\no=- ...\"\n  }\n}\n→ Backend relays to User B only\n\n► call:sdpAnswer  (User B sends after receiving offer)\n{\n  \"roomId\": \"{{roomId}}\",\n  \"sdp\": {\n    \"type\": \"answer\",\n    \"sdp\": \"v=0\\r\\no=- ...\"\n  }\n}\n→ Backend relays to User A only\n\n► call:iceCandidate  (both users send multiple times)\n{\n  \"roomId\": \"{{roomId}}\",\n  \"candidate\": {\n    \"candidate\": \"candidate:123...\",\n    \"sdpMid\": \"0\",\n    \"sdpMLineIndex\": 0\n  }\n}\n→ Backend relays to other user in room\n\n► call:end  ← CUT CALL BUTTON PRESSED\n{\n  \"roomId\": \"{{roomId}}\"\n}\n→ Room deleted from Redis\n→ BOTH users receive call:ended event\n→ BOTH users navigate to HOME screen\n→ Call duration saved to MySQL\n→ Nobody auto re-queues\n\n──────────────────────────────────────────\nEVENTS RECEIVED: BACKEND → FLUTTER\n──────────────────────────────────────────\n\n◄ call:sdpOffer      ← relayed from partner\n◄ call:sdpAnswer     ← relayed from partner\n◄ call:iceCandidate  ← relayed from partner\n\n◄ call:partnerLeft   ← partner swiped away\n{\n  \"message\": \"Partner left\",\n  \"roomId\": \"{{roomId}}\"\n}\n\n◄ call:ended         ← someone pressed cut call\n{\n  \"message\": \"Call ended\",\n  \"roomId\": \"{{roomId}}\",\n  \"duration\": 125\n}\n→ Navigate BOTH users to home screen\n\n──────────────────────────────────────────\nFULL CALL FLOW SEQUENCE\n──────────────────────────────────────────\n1.  Both users → match:joinQueue\n2.  Both receive ← match:found (same roomId)\n3.  User A → call:sdpOffer\n4.  User B ← call:sdpOffer (relayed)\n5.  User B → call:sdpAnswer\n6.  User A ← call:sdpAnswer (relayed)\n7.  Both → call:iceCandidate (multiple times)\n8.  Both ← call:iceCandidate (relayed)\n9.  WebRTC peer connected — Video starts\n10a. Swipe: User A → match:nextMatch\n     User B ← call:partnerLeft\n     User A finds new match automatically\n10b. Cut Call: User A → call:end\n     Both ← call:ended → navigate to home screen"
+            "description": "════ WEBSOCKET — NOT A REST API ════\n\nNamespace: /call\nHandles: joining a room, WebRTC SDP/ICE relay, ending or skipping a call.\nBackend does NOT process video — only relays SDP and ICE signals between peers.\n\n──────────────────────────────────────────\nHOW TO TEST IN POSTMAN\n──────────────────────────────────────────\n1. Click New → WebSocket Request\n2. URL: ws://localhost:3001/call\n3. Headers → add:  Authorization: Bearer {{accessToken}}\n4. Click Connect\n\n──────────────────────────────────────────\nEVENTS TO SEND: FLUTTER → BACKEND\n──────────────────────────────────────────\n\n► call:join  (send immediately after match:callAccepted)\n{ \"roomId\": \"{{roomId}}\" }\n→ When both users joined:\n→ User A ◄ call:ready { isInitiator: true  } — creates SDP offer\n→ User B ◄ call:ready { isInitiator: false } — waits for offer\n\n► call:sdpOffer  (User A sends, isInitiator only)\n{\n  \"roomId\": \"{{roomId}}\",\n  \"sdp\": { \"type\": \"offer\", \"sdp\": \"v=0\\r\\no=- ...\" }\n}\n→ Relayed to User B  ◄ call:sdpOffer\n\n► call:sdpAnswer  (User B sends after receiving offer)\n{\n  \"roomId\": \"{{roomId}}\",\n  \"sdp\": { \"type\": \"answer\", \"sdp\": \"v=0\\r\\no=- ...\" }\n}\n→ Relayed to User A  ◄ call:sdpAnswer\n\n► call:iceCandidate  (both users send, multiple times)\n{\n  \"roomId\": \"{{roomId}}\",\n  \"candidate\": {\n    \"candidate\": \"candidate:123...\",\n    \"sdpMid\": \"0\",\n    \"sdpMLineIndex\": 0\n  }\n}\n→ Relayed to other user  ◄ call:iceCandidate\n→ WebRTC peer connected — video starts\n\n──────────────────────────────────────────\nENDING THE CALL\n──────────────────────────────────────────\n\n► call:end  (End Call button pressed)\n{ \"roomId\": \"{{roomId}}\" }\n→ BOTH users receive ◄ call:ended\n→ BOTH navigate to Home Screen\n→ Duration saved to MySQL\n→ No one is auto re-queued\n\n► call:skip  (Swipe right-to-left)\n{ \"roomId\": \"{{roomId}}\" }\n→ Skipped user  ◄ call:skipped  → goes to Home Screen\n→ Swiping user  ◄ call:skipConfirmed\n→ Swiping user then sends match:next on /matchmaking\n→ Backend rings another random user\n\n──────────────────────────────────────────\nEVENTS RECEIVED: BACKEND → FLUTTER\n──────────────────────────────────────────\n\n◄ call:ready\n{ \"roomId\": \"uuid\", \"isInitiator\": true }\n\n◄ call:sdpOffer   { \"from\": 1, \"sdp\": { ... } }\n◄ call:sdpAnswer  { \"from\": 2, \"sdp\": { ... } }\n◄ call:iceCandidate  { \"from\": 1, \"candidate\": { ... } }\n\n◄ call:ended\n{ \"by\": 1, \"roomId\": \"uuid\", \"reason\": \"ended_by_user\" }\n\n◄ call:skipped\n{ \"by\": 1, \"roomId\": \"uuid\", \"message\": \"Your partner skipped to the next user\" }\n\n◄ call:skipConfirmed\n{ \"roomId\": \"uuid\" }\n\n◄ call:error  { \"message\": \"Room not found\" }\n◄ call:ended  { \"by\": 1, \"roomId\": \"uuid\", \"reason\": \"partner_disconnected\" }\n\n──────────────────────────────────────────\nFULL SEQUENCE SUMMARY\n──────────────────────────────────────────\n1.  /matchmaking: A → match:findUser\n2.  /matchmaking: B ← match:incomingCall\n3.  /matchmaking: B → match:acceptCall\n4.  /matchmaking: Both ← match:callAccepted { roomId }\n5.  /call:        Both connect and → call:join { roomId }\n6.  /call:        A ← call:ready { isInitiator: true }\n               B ← call:ready { isInitiator: false }\n7.  /call:        A → call:sdpOffer\n8.  /call:        B ← call:sdpOffer\n9.  /call:        B → call:sdpAnswer\n10. /call:        A ← call:sdpAnswer\n11. /call:        Both ↔ call:iceCandidate (multiple)\n12. WebRTC connected — video starts\n\nEnd call:  → call:end   → both ← call:ended  → Home Screen\nSwipe next: → call:skip → skipped ← call:skipped → Home Screen\n                         swiping ← call:skipConfirmed\n                         swiping → match:next → rings next user"
           },
           "response": []
         }

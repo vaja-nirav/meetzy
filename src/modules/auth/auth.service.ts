@@ -2,7 +2,10 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { OAuth2Client } from 'google-auth-library';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 import { UsersService } from '../users/users.service';
+import { MatchmakingService } from '../matchmaking/matchmaking.service';
 import { User } from '../users/entities/user.entity';
 import { UnifiedLoginDto } from './dto/unified-login.dto';
 
@@ -12,8 +15,10 @@ export class AuthService {
 
   constructor(
     private readonly usersService: UsersService,
+    private readonly matchmakingService: MatchmakingService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    @InjectRedis() private readonly redis: Redis,
   ) {
     this.googleClient = new OAuth2Client(
       this.configService.get<string>('GOOGLE_CLIENT_ID'),
@@ -243,5 +248,16 @@ export class AuthService {
         expiresIn: this.configService.get('JWT_REFRESH_EXPIRES_IN', '30d') as any,
       },
     );
+  }
+
+  async logout(token?: string, userId?: number): Promise<void> {
+    if (userId) {
+      await this.usersService.setOnlineStatus(userId, false);
+      await this.matchmakingService.markUnavailable(userId);
+    }
+    if (token) {
+      // Blacklist the token in Redis for 7 days (604,800 seconds)
+      await this.redis.setex(`meetzy:blacklist:token:${token}`, 604800, '1');
+    }
   }
 }

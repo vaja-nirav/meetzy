@@ -189,4 +189,123 @@ export class UsersService {
     }
     return this.getPhotos(userId);
   }
+
+  async findActiveUsers(
+    currentUserId: number,
+    gender: string = 'all',
+    limit: number = 20,
+  ): Promise<User[]> {
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+
+    const baseQuery = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.photos', 'photos')
+      .where('user.isOnline = :isOnline', { isOnline: true })
+      .andWhere('user.isBanned = :isBanned', { isBanned: false })
+      .andWhere('user.isProfileComplete = :isProfileComplete', { isProfileComplete: true })
+      .andWhere('user.id != :currentUserId', { currentUserId });
+
+    if (gender === 'female') {
+      return baseQuery
+        .andWhere('user.gender = :gender', { gender: 'female' })
+        .orderBy('RAND()')
+        .take(safeLimit)
+        .getMany();
+    }
+
+    if (gender === 'male') {
+      return baseQuery
+        .andWhere('user.gender = :gender', { gender: 'male' })
+        .orderBy('RAND()')
+        .take(safeLimit)
+        .getMany();
+    }
+
+    // Default 'all': 80% Female / 20% Male target ratio
+    const femaleTarget = Math.round(safeLimit * 0.8);
+    const maleTarget = safeLimit - femaleTarget;
+
+    // Fetch females
+    const females = await this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.photos', 'photos')
+      .where('user.isOnline = :isOnline', { isOnline: true })
+      .andWhere('user.isBanned = :isBanned', { isBanned: false })
+      .andWhere('user.isProfileComplete = :isProfileComplete', { isProfileComplete: true })
+      .andWhere('user.id != :currentUserId', { currentUserId })
+      .andWhere('user.gender = :gender', { gender: 'female' })
+      .orderBy('RAND()')
+      .take(femaleTarget)
+      .getMany();
+
+    // Fetch males
+    const males = await this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.photos', 'photos')
+      .where('user.isOnline = :isOnline', { isOnline: true })
+      .andWhere('user.isBanned = :isBanned', { isBanned: false })
+      .andWhere('user.isProfileComplete = :isProfileComplete', { isProfileComplete: true })
+      .andWhere('user.id != :currentUserId', { currentUserId })
+      .andWhere('user.gender = :gender', { gender: 'male' })
+      .orderBy('RAND()')
+      .take(maleTarget)
+      .getMany();
+
+    const combined = [...females, ...males];
+
+    // Fallback: If not enough females, fill remaining slots with males
+    if (females.length < femaleTarget && combined.length < safeLimit) {
+      const needed = safeLimit - combined.length;
+      const excludeIds = combined.map((u) => u.id);
+      
+      const extraMalesQuery = this.userRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.photos', 'photos')
+        .where('user.isOnline = :isOnline', { isOnline: true })
+        .andWhere('user.isBanned = :isBanned', { isBanned: false })
+        .andWhere('user.isProfileComplete = :isProfileComplete', { isProfileComplete: true })
+        .andWhere('user.id != :currentUserId', { currentUserId })
+        .andWhere('user.gender = :gender', { gender: 'male' });
+
+      if (excludeIds.length > 0) {
+        extraMalesQuery.andWhere('user.id NOT IN (:...excludeIds)', { excludeIds });
+      }
+
+      const extraMales = await extraMalesQuery
+        .orderBy('RAND()')
+        .take(needed)
+        .getMany();
+
+      combined.push(...extraMales);
+    }
+
+    // Fallback: If not enough males, fill remaining slots with females
+    if (males.length < maleTarget && combined.length < safeLimit) {
+      const needed = safeLimit - combined.length;
+      const excludeIds = combined.map((u) => u.id);
+
+      const extraFemalesQuery = this.userRepository
+        .createQueryBuilder('user')
+        .leftJoinAndSelect('user.photos', 'photos')
+        .where('user.isOnline = :isOnline', { isOnline: true })
+        .andWhere('user.isBanned = :isBanned', { isBanned: false })
+        .andWhere('user.isProfileComplete = :isProfileComplete', { isProfileComplete: true })
+        .andWhere('user.id != :currentUserId', { currentUserId })
+        .andWhere('user.gender = :gender', { gender: 'female' });
+
+      if (excludeIds.length > 0) {
+        extraFemalesQuery.andWhere('user.id NOT IN (:...excludeIds)', { excludeIds });
+      }
+
+      const extraFemales = await extraFemalesQuery
+        .orderBy('RAND()')
+        .take(needed)
+        .getMany();
+
+      combined.push(...extraFemales);
+    }
+
+    // Shuffle combined list in-memory
+    return combined.sort(() => Math.random() - 0.5);
+  }
 }

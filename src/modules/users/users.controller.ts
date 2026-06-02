@@ -8,6 +8,7 @@ import {
   Body,
   ParseIntPipe,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { IsArray, IsInt, IsNotEmpty, IsPositive, IsString } from 'class-validator';
@@ -47,6 +48,24 @@ class ReorderPhotosDto {
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Get('active')
+  @ApiOperation({
+    summary: 'Get active/online users for radar',
+    description: 'Returns online users with a target ratio of 80% Female / 20% Male, randomly rotated on each request.',
+  })
+  async getActiveUsers(
+    @CurrentUser() user: User,
+    @Query('gender') gender?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    return this.usersService.findActiveUsers(
+      user.id,
+      gender || 'all',
+      isNaN(parsedLimit) ? 20 : parsedLimit,
+    );
+  }
 
   @Get('online')
   @ApiOperation({ summary: 'Get count of online users' })

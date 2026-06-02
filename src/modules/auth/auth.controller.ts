@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Query, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RefreshTokenDto } from './dto/google-auth.dto';
@@ -37,6 +37,19 @@ export class AuthController {
   @ApiOperation({ summary: 'Refresh access + refresh tokens' })
   async refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshTokens(dto.refreshToken);
+  }
+
+  @Post('logout')
+  @ApiBearerAuth('JWT')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Log out user, invalidate access token, set status offline' })
+  async logout(
+    @CurrentUser() user: User,
+    @Req() req: any,
+  ) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    await this.authService.logout(token, user.id);
+    return { success: true, message: 'Logged out successfully' };
   }
 
   @Get('me')
