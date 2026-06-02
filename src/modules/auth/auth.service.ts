@@ -20,9 +20,15 @@ export class AuthService {
     private readonly configService: ConfigService,
     @InjectRedis() private readonly redis: Redis,
   ) {
-    this.googleClient = new OAuth2Client(
-      this.configService.get<string>('GOOGLE_CLIENT_ID'),
-    );
+    const rawClientIds = this.configService.get<string>('GOOGLE_CLIENT_ID', '');
+    const firstClientId = rawClientIds.split(',')[0]?.trim() || '';
+    this.googleClient = new OAuth2Client(firstClientId);
+  }
+
+  private getGoogleClientIds(): string | string[] {
+    const rawIds = this.configService.get<string>('GOOGLE_CLIENT_ID', '');
+    const clientIds = rawIds.split(',').map(id => id.trim()).filter(Boolean);
+    return clientIds.length > 1 ? clientIds : clientIds[0] || '';
   }
 
   async checkAccountStatus(email?: string, googleId?: string) {
@@ -61,7 +67,7 @@ export class AuthService {
     try {
       const ticket = await this.googleClient.verifyIdToken({
         idToken,
-        audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+        audience: this.getGoogleClientIds(),
       });
       googlePayload = ticket.getPayload();
     } catch {
@@ -119,7 +125,7 @@ export class AuthService {
       try {
         const ticket = await this.googleClient.verifyIdToken({
           idToken: dto.token_id,
-          audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+          audience: this.getGoogleClientIds(),
         });
         googlePayload = ticket.getPayload();
       } catch {
