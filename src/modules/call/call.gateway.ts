@@ -72,7 +72,10 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
       } catch {
         // No DB record if both users left before call:ready was emitted
       }
-      await this.matchmakingService.closeRoom(roomId);
+      const { userAId, userBId } = await this.matchmakingService.closeRoom(roomId);
+      // Re-mark the partner as available — disconnecting user recovers on reconnect
+      const partnerId = userAId === userId ? userBId : userAId;
+      if (partnerId) await this.matchmakingService.markAvailable(partnerId);
     }
   }
 
@@ -163,8 +166,12 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // No DB record if call ended before call:ready
     }
 
-    await client.leave(roomId);
-    await this.matchmakingService.closeRoom(roomId);
+    // Remove ALL sockets from the dead room in one shot — no zombie memberships
+    this.server.in(roomId).socketsLeave(roomId);
+    const { userAId, userBId } = await this.matchmakingService.closeRoom(roomId);
+    // Both users are free immediately — no client event required
+    if (userAId) await this.matchmakingService.markAvailable(userAId);
+    if (userBId) await this.matchmakingService.markAvailable(userBId);
 
     // Confirm to the user who ended — they also navigate to home screen
     client.emit('call:ended', { by: userId, roomId, reason: 'ended_by_user' });
@@ -196,9 +203,13 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.logger.warn(`[call:skip] Could not end call record: ${err.message}`);
     }
 
-    await client.leave(roomId);
-    await this.matchmakingService.closeRoom(roomId);
-    this.logger.log(`[call:skip] User ${userId} left Room ${roomId} and room is closed`);
+    // Remove ALL sockets from the dead room in one shot — no zombie memberships
+    this.server.in(roomId).socketsLeave(roomId);
+    const { userAId, userBId } = await this.matchmakingService.closeRoom(roomId);
+    // Both users are free server-side — skipped user doesn't need to emit anything
+    if (userAId) await this.matchmakingService.markAvailable(userAId);
+    if (userBId) await this.matchmakingService.markAvailable(userBId);
+    this.logger.log(`[call:skip] Room ${roomId} closed, both users marked available`);
 
     // Swiping user: confirm skip (Flutter will emit match:next on /matchmaking)
     client.emit('call:skipConfirmed', { roomId });

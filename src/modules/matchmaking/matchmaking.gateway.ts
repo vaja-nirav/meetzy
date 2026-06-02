@@ -66,6 +66,8 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
       if (room) {
         const otherId = room.userAId === userId ? room.userBId : room.userAId;
         this.server.to(String(otherId)).emit('match:partnerLeft', { roomId });
+        // Partner is still connected — re-mark them available server-side
+        await this.matchmakingService.markAvailable(otherId);
       }
       await this.matchmakingService.closeRoom(roomId);
     }
@@ -164,8 +166,9 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
     const call     = await this.matchmakingService.deletePendingCall(data.callId);
     if (!call) return;
 
-    // Callee is free again
+    // Both parties are free again — caller was locked during the ringing window
     await this.matchmakingService.markAvailable(calleeId);
+    await this.matchmakingService.markAvailable(call.callerId);
 
     // Tell caller they were declined
     this.server.to(String(call.callerId)).emit('match:callDeclined', {
@@ -177,14 +180,14 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
   // ── Caller cancels before callee responds ─────────────────────────────────
   @SubscribeMessage('match:cancelCall')
   async handleCancelCall(
-    @ConnectedSocket() client: Socket,
     @MessageBody() data: { callId: string },
   ) {
     const call = await this.matchmakingService.deletePendingCall(data.callId);
     if (!call) return;
 
-    // Callee is free again
+    // Both parties are free again — caller was locked during the ringing window
     await this.matchmakingService.markAvailable(call.calleeId);
+    await this.matchmakingService.markAvailable(call.callerId);
 
     // Dismiss the incoming popup on callee side
     this.server.to(String(call.calleeId)).emit('match:callCancelled', { callId: data.callId });

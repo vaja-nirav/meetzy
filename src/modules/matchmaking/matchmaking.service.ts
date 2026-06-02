@@ -10,6 +10,28 @@ const USER_ROOM_KEY  = 'meetzy:user:room:';          // STRING — userId → ro
 const CALL_TTL       = 30;                           // seconds — auto-expire unanswered calls
 const ROOM_TTL       = 86_400;                       // 24 hours
 
+// Atomically picks a random member from the set (excluding one id) and removes it.
+// Using a Lua script ensures the pick + remove is a single Redis operation with no
+// race window — two concurrent callers cannot pick the same user.
+const PICK_AND_LOCK_SCRIPT = `
+local members = redis.call('SMEMBERS', KEYS[1])
+local exclude = ARGV[1]
+local seed    = tonumber(ARGV[2])
+local candidates = {}
+for _, v in ipairs(members) do
+  if v ~= exclude then
+    table.insert(candidates, v)
+  end
+end
+if #candidates == 0 then
+  return nil
+end
+math.randomseed(seed)
+local pick = candidates[math.random(#candidates)]
+redis.call('SREM', KEYS[1], pick)
+return pick
+`;
+
 @Injectable()
 export class MatchmakingService {
   private readonly logger = new Logger(MatchmakingService.name);
@@ -30,13 +52,18 @@ export class MatchmakingService {
     return (await this.redis.sismember(AVAILABLE_KEY, String(userId))) === 1;
   }
 
-  // Pick a random free user that isn't the caller
+  // Atomically picks a random available user (excluding caller) and removes them from
+  // the pool in one Redis round-trip — prevents two callers picking the same person.
   async findRandomAvailableUser(excludeUserId: number): Promise<number | null> {
-    const members = await this.redis.smembers(AVAILABLE_KEY);
-    const candidates = members.filter(id => Number(id) !== excludeUserId);
-    if (candidates.length === 0) return null;
-    const pick = candidates[Math.floor(Math.random() * candidates.length)];
-    return Number(pick);
+    const result = await this.redis.eval(
+      PICK_AND_LOCK_SCRIPT,
+      1,
+      AVAILABLE_KEY,
+      String(excludeUserId),
+      String(Math.floor(Math.random() * 1_000_000)),
+    ) as string | null;
+    if (!result) return null;
+    return Number(result);
   }
 
   // ── Pending calls (ringing state) ──────────────────────────────────────────
@@ -47,8 +74,10 @@ export class MatchmakingService {
       CALL_TTL,
       JSON.stringify({ callerId, calleeId }),
     );
-    // Remove callee from available while they're being rung
+    // Lock both parties for the full ringing window — callee was already removed by
+    // findRandomAvailableUser (Lua), this SREM is a safe no-op; caller is newly locked.
     await this.markUnavailable(calleeId);
+    await this.markUnavailable(callerId);
   }
 
   async getPendingCall(callId: string): Promise<{ callerId: number; calleeId: number } | null> {
