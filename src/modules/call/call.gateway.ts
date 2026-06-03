@@ -65,6 +65,9 @@ export class CallGateway implements OnGatewayConnection, OnGatewayDisconnect {
           roomId,
           reason: 'partner_disconnected',
         });
+        // Also notify on /matchmaking so Flutter navigates home regardless of which
+        // socket disconnected first (phone crash / internet drop race condition fix)
+        (this.server as any).server.of('/matchmaking').to(String(otherId)).emit('match:partnerLeft', { roomId });
       }
       // Save call duration
       try {

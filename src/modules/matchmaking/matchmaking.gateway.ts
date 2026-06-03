@@ -66,6 +66,13 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
       if (room) {
         const otherId = room.userAId === userId ? room.userBId : room.userAId;
         this.server.to(String(otherId)).emit('match:partnerLeft', { roomId });
+        // Also notify on /call so Flutter closes the call screen regardless of which
+        // socket disconnected first (phone crash / internet drop race condition fix)
+        (this.server as any).server.of('/call').to(String(otherId)).emit('call:ended', {
+          by: userId,
+          roomId,
+          reason: 'partner_disconnected',
+        });
         // Partner is still connected — re-mark them available server-side
         await this.matchmakingService.markAvailable(otherId);
       }
