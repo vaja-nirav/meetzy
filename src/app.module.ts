@@ -15,6 +15,7 @@ import { GiftsModule } from './modules/gifts/gifts.module';
 import { ProfileModule } from './modules/profile/profile.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { CountriesModule } from './modules/countries/countries.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { CountriesModule } from './modules/countries/countries.module';
     GiftsModule,
     ProfileModule,
     NotificationsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}
