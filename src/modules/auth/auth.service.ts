@@ -263,6 +263,10 @@ export class AuthService {
       // 4B. EXISTING USER
       if (user.isBanned) throw new UnauthorizedException('Account is banned');
 
+      if (!user.isProfileComplete) {
+        isNewUser = true;
+      }
+
       if (hasProfileData && !user.isProfileComplete) {
         await this.usersService.update(user.id, {
           displayName: dto.display_name,

@@ -100,42 +100,74 @@ export class UsersService {
   }
 
   async update(id: number, data: UpdateUserDto): Promise<User> {
-    const { url, cover_images, ...dbData } = data;
+    const { url, cover_images, ...rawDbData } = data;
+
+    // Map snake_case properties to camelCase in rawDbData
+    if (rawDbData.display_name !== undefined) rawDbData.displayName = rawDbData.display_name;
+    if (rawDbData.photo_url !== undefined) rawDbData.photoUrl = rawDbData.photo_url;
+    if (rawDbData.country_id !== undefined) rawDbData.countryId = rawDbData.country_id;
+    if (rawDbData.country_name !== undefined) rawDbData.countryName = rawDbData.country_name;
+    if (rawDbData.country_code !== undefined) rawDbData.countryCode = rawDbData.country_code;
+    if (rawDbData.fcm_token !== undefined) rawDbData.fcmToken = rawDbData.fcm_token;
+
+    // Filter to only allow camelCase keys that exist in the User entity properties
+    const allowedKeys = [
+      'displayName',
+      'bio',
+      'photoUrl',
+      'gender',
+      'countryId',
+      'countryName',
+      'countryCode',
+      'isVip',
+      'isOnline',
+      'isBanned',
+      'isProfileComplete',
+      'fcmToken',
+      'coins',
+    ];
+
+    const dbData: any = {};
+    for (const key of allowedKeys) {
+      if (rawDbData[key] !== undefined) {
+        dbData[key] = rawDbData[key];
+      }
+    }
 
     if (Object.keys(dbData).length > 0) {
-      const countryId = (dbData as any).countryId;
-      const countryCode = (dbData as any).countryCode;
-      const countryName = (dbData as any).countryName;
+      const countryId = dbData.countryId;
+      const countryCode = dbData.countryCode;
+      const countryName = dbData.countryName;
 
       if (countryId) {
         const country = await this.entityManager.findOne(Country, {
           where: { id: countryId },
         });
         if (country) {
-          (dbData as any).countryName = country.name;
-          (dbData as any).countryCode = country.code;
+          dbData.countryName = country.name;
+          dbData.countryCode = country.code;
         }
       } else if (countryCode) {
         const country = await this.entityManager.findOne(Country, {
           where: { code: countryCode.toUpperCase() },
         });
         if (country) {
-          (dbData as any).countryId = country.id;
-          (dbData as any).countryName = country.name;
-          (dbData as any).countryCode = country.code;
+          dbData.countryId = country.id;
+          dbData.countryName = country.name;
+          dbData.countryCode = country.code;
         }
       } else if (countryName) {
         const country = await this.entityManager.findOne(Country, {
           where: { name: countryName },
         });
         if (country) {
-          (dbData as any).countryId = country.id;
-          (dbData as any).countryName = country.name;
-          (dbData as any).countryCode = country.code;
+          dbData.countryId = country.id;
+          dbData.countryName = country.name;
+          dbData.countryCode = country.code;
         }
       }
 
-      await this.userRepository.update(id, dbData as any);
+      await this.userRepository.update(id, dbData);
     }
 
     if (url) {
