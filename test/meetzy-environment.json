@@ -43,6 +43,20 @@
       "enabled": true,
       "type": "default",
       "description": "Active call room UUID — received in match:found WebSocket event"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "enabled": true,
+      "type": "secret",
+      "description": "Admin JWT — paste from POST /admin/login response (data.token)"
+    },
+    {
+      "key": "mosaicId",
+      "value": "",
+      "enabled": true,
+      "type": "default",
+      "description": "Login-mosaic entry UUID — auto-populated by the Create Mosaic Entry test script"
     }
   ],
   "_postman_variable_scope": "environment",

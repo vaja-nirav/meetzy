@@ -10,11 +10,15 @@ import {
   Query,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { MosaicService } from './mosaic.service';
 import { AdminGuard } from './guards/admin.guard';
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly mosaicService: MosaicService,
+  ) {}
 
   // PUBLIC — no guard on login
   @Post('login')
@@ -135,5 +139,36 @@ export class AdminController {
   @Post('config')
   saveConfig(@Body() body: any) {
     return this.adminService.saveConfig(body);
+  }
+
+  // ── LOGIN MOSAIC CRUD ─────────────────────────────────────────────────────
+  @UseGuards(AdminGuard)
+  @Get('mosaic')
+  getMosaic(@Query() query: any) {
+    return this.mosaicService.getAll(query);
+  }
+
+  @UseGuards(AdminGuard)
+  @Post('mosaic')
+  createMosaic(@Body() body: any) {
+    return this.mosaicService.create(body);
+  }
+
+  @UseGuards(AdminGuard)
+  @Patch('mosaic/:id')
+  updateMosaic(@Param('id') id: string, @Body() body: any) {
+    return this.mosaicService.update(id, body);
+  }
+
+  @UseGuards(AdminGuard)
+  @Delete('mosaic/:id')
+  deleteMosaic(@Param('id') id: string) {
+    return this.mosaicService.delete(id);
+  }
+
+  @UseGuards(AdminGuard)
+  @Patch('mosaic/:id/status')
+  updateMosaicStatus(@Param('id') id: string, @Body() body: any) {
+    return this.mosaicService.updateStatus(id, body?.status);
   }
 }

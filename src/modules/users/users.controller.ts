@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   UseGuards,
   Query,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { IsArray, IsInt, IsNotEmpty, IsPositive, IsString } from 'class-validator';
@@ -56,14 +57,60 @@ export class UsersController {
   })
   async getActiveUsers(
     @CurrentUser() user: User,
+    @Req() req: any,
     @Query('limit') limit?: string,
   ) {
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const baseUrl = `${protocol}://${host}`;
+
     const parsedLimit = limit ? parseInt(limit, 10) : 20;
-    return this.usersService.findActiveUsers(
+    const users = await this.usersService.findActiveUsers(
       user.id,
       'all',
       isNaN(parsedLimit) ? 20 : parsedLimit,
     );
+
+    const resolveUrl = (path: string | null | undefined): string => {
+      if (!path) return '';
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        return path;
+      }
+      return `${baseUrl}${path}`;
+    };
+
+    const formattedUsers = users.map((u) => ({
+      id: u.id,
+      googleId: u.googleId,
+      email: u.email,
+      displayName: u.displayName,
+      bio: u.bio ?? null,
+      photoUrl: resolveUrl(u.photoUrl) || null,
+      gender: u.gender,
+      countryId: u.countryId,
+      countryName: u.countryName ?? null,
+      countryCode: u.countryCode ?? null,
+      isVip: u.isVip,
+      isOnline: u.isOnline,
+      isBanned: u.isBanned,
+      isProfileComplete: u.isProfileComplete,
+      fcmToken: u.fcmToken ?? null,
+      coins: u.coins ?? 0,
+      createdAt: u.createdAt,
+      updatedAt: u.updatedAt,
+      cover_images: (u.photos || []).map((p) => ({
+        id: p.id,
+        userId: p.userId,
+        url: resolveUrl(p.url),
+        sortOrder: p.sortOrder,
+        createdAt: p.createdAt,
+      })),
+    }));
+
+    return {
+      success: true,
+      data: formattedUsers,
+    };
   }
 
   @Get('online')

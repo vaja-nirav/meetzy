@@ -35,6 +35,16 @@
       "key": "roomId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mosaicId",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -70,8 +80,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/auth/check-account?token_id=mock_google_token",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "check-account"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "check-account"
+              ],
               "query": [
                 {
                   "key": "token_id",
@@ -170,8 +185,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/auth/login",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             },
             "description": "One API for all Flutter auth scenarios. token_id is always required. All other fields are optional.\n\n──────────────────────────────────────────\nUSAGE GUIDE\n──────────────────────────────────────────\n\nScenario A — Login Screen (new or returning):\nSend only token_id. Remove all other fields.\n→ New user:       is_profile_complete: false → show Profile Setup Screen\n→ Returning user: is_profile_complete: true  → go to Home Screen\n\nScenario B — Profile Setup Screen:\nSend token_id + display_name + gender + country_name + country_code.\n→ Backend saves profile, is_profile_complete: true → go to Home Screen\n\n──────────────────────────────────────────\nFLUTTER NAVIGATION RULE\n──────────────────────────────────────────\nif (res.data.user.is_profile_complete == false) → Profile Setup Screen\nif (res.data.user.is_profile_complete == true)  → Home Screen\n\n──────────────────────────────────────────\nEXPECTED RESPONSE\n──────────────────────────────────────────\n```json\n{\n  \"success\": true,\n  \"is_new_user\": true,\n  \"message\": \"Login successful\",\n  \"data\": {\n    \"access_token\": \"eyJhbG...\",\n    \"refresh_token\": \"eyJhbG...\",\n    \"expires_in\": 604800,\n    \"user\": {\n      \"id\": 1,\n      \"email\": \"nirav@gmail.com\",\n      \"display_name\": \"John Doe\",\n      \"photo_url\": \"https://...\",\n      \"gender\": \"male\",\n      \"country_name\": \"India\",\n      \"country_code\": \"IN\",\n      \"is_vip\": false,\n      \"is_online\": true,\n      \"is_profile_complete\": false,\n      \"wallet_balance\": 0,\n      \"created_at\": \"2026-06-01T00:00:00.000Z\"\n    }\n  }\n}\n```"
           },
@@ -208,8 +228,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/auth/logout",
-              "host": ["{{baseUrl}}"],
-              "path": ["auth", "logout"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
             },
             "description": "Logs out the current user, invalidates the access token in Redis, and sets their online status to false."
           },
@@ -220,8 +245,7 @@
     {
       "name": "2. Profile Update",
       "description": "Use GET first to load current data, then PATCH to send only the fields that changed. All PATCH fields are optional.",
-      "item": 
-      [
+      "item": [
         {
           "name": "Get My Profile",
           "event": [
@@ -269,8 +293,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/profile/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["profile", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "profile",
+                "me"
+              ]
             },
             "description": "Returns the full profile of the currently logged-in user.\n\nNote: Response is wrapped inside a data object alongside refreshed access and refresh tokens.\n\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"access_token\": \"...\",\n    \"refresh_token\": \"...\",\n    \"expires_in\": 604800,\n    \"user\": {\n      \"id\": 6,\n      \"google_id\": \"111590874060848869509\",\n      \"email\": \"vajanirav2003@gmail.com\",\n      \"display_name\": \"Nirav Vaja\",\n      \"bio\": \"Software Developer | Video chat enthusiast\",\n      \"photo_url\": \"https://...\",\n      \"gender\": \"male\",\n      \"country_id\": 13,\n      \"country\": {\n        \"id\": 13,\n        \"name\": \"Bahrain\",\n        \"code\": \"BH\",\n        \"dial_code\": \"+973\",\n        \"flag\": \"🇧🇭\"\n      },\n      \"country_name\": \"Bahrain\",\n      \"country_code\": \"BH\",\n      \"is_vip\": false,\n      \"is_online\": true,\n      \"is_banned\": false,\n      \"is_profile_complete\": true,\n      \"fcm_token\": null,\n      \"coins\": 0,\n      \"created_at\": \"2026-06-02T12:40:52.632Z\",\n      \"updated_at\": \"2026-06-02T15:03:33.000Z\",\n      \"cover_images\": [],\n      \"wallet\": { \"balance\": 0, \"currency\": \"coins\" }\n    }\n  }\n}\n```"
           },
@@ -351,8 +380,13 @@
             },
             "url": {
               "raw": "{{baseUrl}}/profile/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["profile", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "profile",
+                "me"
+              ]
             },
             "description": "Updates user profile. All fields are optional — send only what changed.\nReturns the updated User object (no success wrapper)."
           },
@@ -385,8 +419,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/active?limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "active"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "active"
+              ],
               "query": [
                 {
                   "key": "limit",
@@ -427,8 +466,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/me",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "me"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
             },
             "description": "Purges the authenticated user account and all of their related transactional data, photos, gifts, messages, and calls from both the MySQL database and Redis states."
           },
@@ -474,8 +518,13 @@
             ],
             "url": {
               "raw": "{{baseUrl}}/users/{{partnerId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{partnerId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{partnerId}}"
+              ]
             },
             "description": "Loads partner's public info (name, photo, country, gender) to show on the call screen overlay.\nSet the `partnerId` collection variable to the partner's user ID before running."
           },
@@ -489,9 +538,13 @@
             "url": {
               "raw": "ws://localhost:3001/matchmaking",
               "protocol": "ws",
-              "host": ["localhost"],
+              "host": [
+                "localhost"
+              ],
               "port": "3001",
-              "path": ["matchmaking"]
+              "path": [
+                "matchmaking"
+              ]
             },
             "description": "════ WEBSOCKET — NOT A REST API ════\n\nNamespace: /matchmaking\nHandles: finding users, ringing, accepting, declining, cancelling, skipping.\n\n──────────────────────────────────────────\nHOW TO TEST IN POSTMAN\n──────────────────────────────────────────\n1. Click New → WebSocket Request\n2. URL: ws://localhost:3001/matchmaking\n3. Headers → add:  Authorization: Bearer {{accessToken}}\n4. Click Connect\n\n──────────────────────────────────────────\nEVENTS TO SEND: FLUTTER → BACKEND\n──────────────────────────────────────────\n\n► match:findUser  (User A clicks Connect button — no body)\n→ Backend picks a random available user (User B)\n→ User B receives ◄ match:incomingCall\n→ User A receives ◄ match:calling\n\n► match:acceptCall  (User B taps Accept)\n{ \"callId\": \"uuid\" }\n→ Both receive ◄ match:callAccepted with roomId\n\n► match:declineCall  (User B taps Decline)\n{ \"callId\": \"uuid\" }\n→ User A receives ◄ match:callDeclined\n\n► match:cancelCall  (User A cancels before B responds)\n{ \"callId\": \"uuid\" }\n→ User B popup dismissed ◄ match:callCancelled\n\n► match:next  (after call:skipConfirmed — find next user)\n(no body)\n→ Immediately finds another random user to ring\n\n► match:backToAvailable  (after call ends, re-enter pool)\n(no body)\n\n──────────────────────────────────────────\nEVENTS RECEIVED: BACKEND → FLUTTER\n──────────────────────────────────────────\n\n◄ match:incomingCall  (to callee User B)\n{\n  \"callId\": \"uuid\",\n  \"caller\": {\n    \"id\": 1,\n    \"displayName\": \"John\",\n    \"photoUrl\": \"https://...\",\n    \"bio\": \"...\",\n    \"gender\": \"male\",\n    \"country\": { \"name\": \"India\", \"code\": \"IN\" }\n  }\n}\n\n◄ match:calling  (to caller User A)\n{\n  \"callId\": \"uuid\",\n  \"calleeId\": 2\n}\n\n◄ match:callAccepted  (to BOTH users)\n{\n  \"roomId\": \"uuid-room-id\",\n  \"partnerId\": 2,\n  \"iceServers\": [\n    { \"urls\": \"stun:stun.l.google.com:19302\" },\n    { \"urls\": \"turn:...\", \"username\": \"meetzy\", \"credential\": \"...\" }\n  ]\n}\n→ Save roomId → connect to /call WebSocket\n\n◄ match:callDeclined   { \"message\": \"User declined your call\" }\n◄ match:callCancelled  { \"callId\": \"uuid\" }\n◄ match:callExpired    { \"message\": \"Call request expired or cancelled\" }\n◄ match:noUsersAvailable  { \"message\": \"No users are available right now.\" }\n◄ match:partnerLeft    { \"roomId\": \"uuid\" }  ← partner disconnected"
           },
@@ -516,6 +569,287 @@
             "description": "════ WEBSOCKET — NOT A REST API ════\n\nNamespace: /call\nHandles: joining a room, WebRTC SDP/ICE relay, ending or skipping a call.\nBackend does NOT process video — only relays SDP and ICE signals between peers.\n\n──────────────────────────────────────────\nHOW TO TEST IN POSTMAN\n──────────────────────────────────────────\n1. Click New → WebSocket Request\n2. URL: ws://localhost:3001/call\n3. Headers → add:  Authorization: Bearer {{accessToken}}\n4. Click Connect\n\n──────────────────────────────────────────\nEVENTS TO SEND: FLUTTER → BACKEND\n──────────────────────────────────────────\n\n► call:join  (send immediately after match:callAccepted)\n{ \"roomId\": \"{{roomId}}\" }\n→ When both users joined:\n→ User A ◄ call:ready { isInitiator: true  } — creates SDP offer\n→ User B ◄ call:ready { isInitiator: false } — waits for offer\n\n► call:sdpOffer  (User A sends, isInitiator only)\n{\n  \"roomId\": \"{{roomId}}\",\n  \"sdp\": { \"type\": \"offer\", \"sdp\": \"v=0\\r\\no=- ...\" }\n}\n→ Relayed to User B  ◄ call:sdpOffer\n\n► call:sdpAnswer  (User B sends after receiving offer)\n{\n  \"roomId\": \"{{roomId}}\",\n  \"sdp\": { \"type\": \"answer\", \"sdp\": \"v=0\\r\\no=- ...\" }\n}\n→ Relayed to User A  ◄ call:sdpAnswer\n\n► call:iceCandidate  (both users send, multiple times)\n{\n  \"roomId\": \"{{roomId}}\",\n  \"candidate\": {\n    \"candidate\": \"candidate:123...\",\n    \"sdpMid\": \"0\",\n    \"sdpMLineIndex\": 0\n  }\n}\n→ Relayed to other user  ◄ call:iceCandidate\n→ WebRTC peer connected — video starts\n\n──────────────────────────────────────────\nENDING THE CALL\n──────────────────────────────────────────\n\n► call:end  (End Call button pressed)\n{ \"roomId\": \"{{roomId}}\" }\n→ BOTH users receive ◄ call:ended\n→ BOTH navigate to Home Screen\n→ Duration saved to MySQL\n→ No one is auto re-queued\n\n► call:skip  (Swipe right-to-left)\n{ \"roomId\": \"{{roomId}}\" }\n→ Skipped user  ◄ call:skipped  → goes to Home Screen\n→ Swiping user  ◄ call:skipConfirmed\n→ Swiping user then sends match:next on /matchmaking\n→ Backend rings another random user\n\n──────────────────────────────────────────\nEVENTS RECEIVED: BACKEND → FLUTTER\n──────────────────────────────────────────\n\n◄ call:ready\n{ \"roomId\": \"uuid\", \"isInitiator\": true }\n\n◄ call:sdpOffer   { \"from\": 1, \"sdp\": { ... } }\n◄ call:sdpAnswer  { \"from\": 2, \"sdp\": { ... } }\n◄ call:iceCandidate  { \"from\": 1, \"candidate\": { ... } }\n\n◄ call:ended\n{ \"by\": 1, \"roomId\": \"uuid\", \"reason\": \"ended_by_user\" }\n\n◄ call:skipped\n{ \"by\": 1, \"roomId\": \"uuid\", \"message\": \"Your partner skipped to the next user\" }\n\n◄ call:skipConfirmed\n{ \"roomId\": \"uuid\" }\n\n◄ call:error  { \"message\": \"Room not found\" }\n◄ call:ended  { \"by\": 1, \"roomId\": \"uuid\", \"reason\": \"partner_disconnected\" }\n\n──────────────────────────────────────────\nFULL SEQUENCE SUMMARY\n──────────────────────────────────────────\n1.  /matchmaking: A → match:findUser\n2.  /matchmaking: B ← match:incomingCall\n3.  /matchmaking: B → match:acceptCall\n4.  /matchmaking: Both ← match:callAccepted { roomId }\n5.  /call:        Both connect and → call:join { roomId }\n6.  /call:        A ← call:ready { isInitiator: true }\n               B ← call:ready { isInitiator: false }\n7.  /call:        A → call:sdpOffer\n8.  /call:        B ← call:sdpOffer\n9.  /call:        B → call:sdpAnswer\n10. /call:        A ← call:sdpAnswer\n11. /call:        Both ↔ call:iceCandidate (multiple)\n12. WebRTC connected — video starts\n\nEnd call:  → call:end   → both ← call:ended  → Home Screen\nSwipe next: → call:skip → skipped ← call:skipped → Home Screen\n                         swiping ← call:skipConfirmed\n                         swiping → match:next → rings next user"
           },
           "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Login Mosaic",
+      "item": [
+        {
+          "name": "Admin Login (get token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test(\"Login ok\", () => pm.expect(pm.response.code).to.be.oneOf([200,201]));",
+                  "if (res.token || (res.data && res.data.adminToken)) {",
+                  "  const t = res.token || res.data.adminToken;",
+                  "  pm.collectionVariables.set(\"adminToken\", t);",
+                  "  console.log(\"Saved adminToken\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "email",
+                  "value": "admin@meetzy.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "meetzy@admin123",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All Mosaic Entries (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/mosaic",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "mosaic"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All with Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/mosaic?status=active&gender=female",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "mosaic"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active"
+                },
+                {
+                  "key": "gender",
+                  "value": "female"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Mosaic Entry",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test(\"Created\", () => pm.expect(pm.response.code).to.equal(201));",
+                  "if (res.data && res.data.id) {",
+                  "  pm.collectionVariables.set(\"mosaicId\", res.data.id);",
+                  "  console.log(\"Saved mosaicId =\", res.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "photo_url",
+                  "value": "https://randomuser.me/api/portraits/women/1.jpg",
+                  "type": "file"
+                },
+                {
+                  "key": "gender",
+                  "value": "female",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "type": "text"
+                },
+                {
+                  "key": "show_online_dot",
+                  "value": "true",
+                  "type": "text"
+                },
+                {
+                  "key": "order",
+                  "value": "0",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/mosaic",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "mosaic"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Mosaic Entry",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "photo_url",
+                  "value": "https://randomuser.me/api/portraits/women/1.jpg",
+                  "type": "file"
+                },
+                {
+                  "key": "gender",
+                  "value": "male",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "active",
+                  "type": "text"
+                },
+                {
+                  "key": "show_online_dot",
+                  "value": "false",
+                  "type": "text"
+                },
+                {
+                  "key": "order",
+                  "value": "1",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/mosaic/{{mosaicId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "mosaic",
+                "{{mosaicId}}"
+              ]
+            }
+          }
+        },
+
+        {
+          "name": "Delete Mosaic Entry",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/mosaic/{{mosaicId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "mosaic",
+                "{{mosaicId}}"
+              ]
+            }
+          }
         }
       ]
     }
