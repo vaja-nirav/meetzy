@@ -61,7 +61,10 @@ export class AuthController {
   @ApiBearerAuth('JWT')
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Get current authenticated user' })
-  getMe(@CurrentUser() user: User) {
-    return user;
+  async getMe(@CurrentUser() user: User, @Req() req: any) {
+    const host = req.get('host');
+    const protocol = req.protocol;
+    const baseUrl = `${protocol}://${host}`;
+    return this.authService.formatUserResponse(user, baseUrl);
   }
 }

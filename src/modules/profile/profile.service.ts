@@ -68,6 +68,8 @@ export class ProfileService {
     const authData = this.authService.getAuthResponse(user, baseUrl);
     return {
       success: true,
+      is_new_user: false,
+      message: 'Profile retrieved successfully',
       data: authData,
     };
   }
@@ -86,7 +88,13 @@ export class ProfileService {
     }
 
     const updated = await this.usersService.update(userId, dto);
-    return this.authService.formatUserResponse(updated, baseUrl);
+    const authData = this.authService.getAuthResponse(updated, baseUrl);
+    return {
+      success: true,
+      is_new_user: false,
+      message: 'Profile updated successfully',
+      data: authData,
+    };
   }
 
   async getPublicProfile(userId: number) {
