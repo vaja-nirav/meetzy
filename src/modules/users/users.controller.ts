@@ -56,13 +56,12 @@ export class UsersController {
   })
   async getActiveUsers(
     @CurrentUser() user: User,
-    @Query('gender') gender?: string,
     @Query('limit') limit?: string,
   ) {
     const parsedLimit = limit ? parseInt(limit, 10) : 20;
     return this.usersService.findActiveUsers(
       user.id,
-      gender || 'all',
+      'all',
       isNaN(parsedLimit) ? 20 : parsedLimit,
     );
   }

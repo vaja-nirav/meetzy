@@ -384,15 +384,10 @@
               }
             ],
             "url": {
-              "raw": "{{baseUrl}}/users/active?gender=all&limit=20",
+              "raw": "{{baseUrl}}/users/active?limit=20",
               "host": ["{{baseUrl}}"],
               "path": ["users", "active"],
               "query": [
-                {
-                  "key": "gender",
-                  "value": "all",
-                  "description": "Optional: 'all' (80% F / 20% M), 'female', 'male'"
-                },
                 {
                   "key": "limit",
                   "value": "20",
@@ -400,7 +395,7 @@
                 }
               ]
             },
-            "description": "Returns a randomized list of active online users for the radar home screen.\n\nFilters:\n- gender=all (Default): returns 80% female and 20% male, shuffled randomly.\n- gender=female: returns only females.\n- gender=male: returns only males."
+            "description": "Returns a randomized list of active online users for the radar home screen (80% Female / 20% Male distribution)."
           },
           "response": []
         },

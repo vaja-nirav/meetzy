@@ -406,8 +406,8 @@ export class UsersService {
       combined.push(...extraFemales);
     }
 
-    // Shuffle combined list in-memory
-    return combined.sort(() => Math.random() - 0.5);
+    // Shuffle combined list in-memory and cap it to the requested limit
+    return combined.sort(() => Math.random() - 0.5).slice(0, safeLimit);
   }
 
   async deleteUser(userId: number): Promise<void> {
