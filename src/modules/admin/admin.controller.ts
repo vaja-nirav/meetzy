@@ -13,6 +13,7 @@ import {
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { AdminService } from './admin.service';
 import { MosaicService } from './mosaic.service';
+import { PeopleService } from './people.service';
 import { AdminGuard } from './guards/admin.guard';
 
 @Controller('admin')
@@ -20,6 +21,7 @@ export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     private readonly mosaicService: MosaicService,
+    private readonly peopleService: PeopleService,
   ) {}
 
   // PUBLIC — no guard on login
@@ -173,5 +175,36 @@ export class AdminController {
   @Patch('mosaic/:id/status')
   updateMosaicStatus(@Param('id') id: string, @Body() body: any) {
     return this.mosaicService.updateStatus(id, body?.status);
+  }
+
+  // ── PEOPLE PROFILES CRUD ──────────────────────────────────────────────────
+  @UseGuards(AdminGuard)
+  @Get('people')
+  getPeople(@Query() query: any) {
+    return this.peopleService.getAll(query);
+  }
+
+  @UseGuards(AdminGuard)
+  @Post('people')
+  createPerson(@Body() body: any) {
+    return this.peopleService.create(body);
+  }
+
+  @UseGuards(AdminGuard)
+  @Patch('people/:id')
+  updatePerson(@Param('id') id: string, @Body() body: any) {
+    return this.peopleService.update(id, body);
+  }
+
+  @UseGuards(AdminGuard)
+  @Delete('people/:id')
+  deletePerson(@Param('id') id: string) {
+    return this.peopleService.delete(id);
+  }
+
+  @UseGuards(AdminGuard)
+  @Patch('people/:id/status')
+  updatePersonStatus(@Param('id') id: string, @Body() body: any) {
+    return this.peopleService.updateStatus(id, body?.status);
   }
 }

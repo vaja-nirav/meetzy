@@ -1,5 +1,6 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Query } from '@nestjs/common';
 import { MosaicService } from '../admin/mosaic.service';
+import { PeopleService } from '../admin/people.service';
 
 /**
  * Public, unauthenticated routes consumed by the Flutter mobile app.
@@ -7,10 +8,19 @@ import { MosaicService } from '../admin/mosaic.service';
  */
 @Controller('app')
 export class AppController {
-  constructor(private readonly mosaicService: MosaicService) {}
+  constructor(
+    private readonly mosaicService: MosaicService,
+    private readonly peopleService: PeopleService,
+  ) {}
 
   @Get('login-mosaic')
   getLoginMosaic() {
     return this.mosaicService.getActiveForApp();
+  }
+
+  // People page (Popular tab) — only active profiles
+  @Get('people')
+  getPeople(@Query() query: any) {
+    return this.peopleService.getActiveForApp(query);
   }
 }

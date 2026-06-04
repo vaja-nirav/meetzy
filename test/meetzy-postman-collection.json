@@ -45,6 +45,11 @@
       "key": "mosaicId",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "people_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -822,7 +827,6 @@
             }
           }
         },
-
         {
           "name": "Delete Mosaic Entry",
           "request": {
@@ -847,6 +851,352 @@
                 "admin",
                 "mosaic",
                 "{{mosaicId}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. People",
+      "item": [
+        {
+          "name": "Admin Login (get token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r=pm.response.json();",
+                  "const t=r.token||(r.data&&r.data.adminToken);",
+                  "if(t){pm.collectionVariables.set(\"adminToken\",t);console.log(\"Saved adminToken\");}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@meetzy.com\",\n  \"password\": \"meetzy@admin123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "login"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All People (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/people",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "people"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get All with Filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/people?status=active&country_id=75",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "people"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "active"
+                },
+                {
+                  "key": "country_id",
+                  "value": "75"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Person",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const r=pm.response.json();",
+                  "pm.test(\"created\",()=>pm.expect(pm.response.code).to.equal(201));",
+                  "if(r.data&&r.data.id){pm.collectionVariables.set(\"people_id\",r.data.id);console.log(\"people_id=\"+r.data.id);}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_name\": \"Nikku\",\n  \"age\": 22,\n  \"blue_tick\": true,\n  \"country_id\": 75,\n  \"about_me\": \"Coffee & late-night convos\",\n  \"languages\": [\n    \"Hindi\",\n    \"English\"\n  ],\n  \"cover_images\": [\n    \"https://randomuser.me/api/portraits/women/1.jpg\",\n    \"https://randomuser.me/api/portraits/women/2.jpg\"\n  ],\n  \"order\": 0\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/people",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "people"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Person",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"age\": 23,\n  \"blue_tick\": false,\n  \"languages\": [\n    \"Hindi\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/people/{{people_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "people",
+                "{{people_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Toggle Status Active",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/people/{{people_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "people",
+                "{{people_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Toggle Status Inactive",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/people/{{people_id}}/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "people",
+                "{{people_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Person",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/people/{{people_id}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "people",
+                "{{people_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Active People (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/app/people",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "app",
+                "people"
               ]
             }
           }
