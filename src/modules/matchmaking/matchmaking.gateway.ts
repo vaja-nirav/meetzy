@@ -5,7 +5,6 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   ConnectedSocket,
-  MessageBody,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
@@ -145,14 +144,14 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
       const iceServers = this.getIceServers();
 
       this.server.to(String(callerId)).emit('match:matched', {
-        roomId,
-        partnerId: calleeId,
-        iceServers,
+        room_id: roomId,
+        partner_id: calleeId,
+        ice_servers: iceServers,
       });
       this.server.to(String(calleeId)).emit('match:matched', {
-        roomId,
-        partnerId: callerId,
-        iceServers,
+        room_id: roomId,
+        partner_id: callerId,
+        ice_servers: iceServers,
       });
       this.logger.log(`Auto-connected ${callerId} ↔ ${calleeId} — room ${roomId}`);
       return;
@@ -162,76 +161,6 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
     client.emit('match:noUsersAvailable', {
       message: 'No users are available right now. Searching…',
     });
-  }
-
-  // ── STEP 2a: Callee clicks "Connect" ───────────────────────────────────────
-  @SubscribeMessage('match:acceptCall')
-  async handleAcceptCall(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { callId: string },
-  ) {
-    const calleeId = client.data.userId as number;
-    const call = await this.matchmakingService.deletePendingCall(data.callId);
-
-    if (!call) {
-      client.emit('match:callExpired', { message: 'Call request expired or cancelled' });
-      return;
-    }
-
-    const { callerId } = call;
-    const roomId      = await this.matchmakingService.createRoom(callerId, calleeId);
-    const iceServers  = this.getIceServers();
-
-    // Notify both — they navigate to the call page
-    this.server.to(String(callerId)).emit('match:callAccepted', {
-      roomId,
-      partnerId: calleeId,
-      iceServers,
-    });
-    this.server.to(String(calleeId)).emit('match:callAccepted', {
-      roomId,
-      partnerId: callerId,
-      iceServers,
-    });
-    this.logger.log(`Call accepted — room ${roomId}`);
-  }
-
-  // ── STEP 2b: Callee clicks "Decline" ───────────────────────────────────────
-  @SubscribeMessage('match:declineCall')
-  async handleDeclineCall(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: { callId: string },
-  ) {
-    const calleeId = client.data.userId as number;
-    const call     = await this.matchmakingService.deletePendingCall(data.callId);
-    if (!call) return;
-
-    // Both parties are free again — caller was locked during the ringing window
-    await this.matchmakingService.markAvailable(calleeId);
-    await this.matchmakingService.markAvailable(call.callerId);
-
-    // Tell caller they were declined
-    this.server.to(String(call.callerId)).emit('match:callDeclined', {
-      message: 'User declined your call',
-    });
-    this.logger.log(`Call ${data.callId} declined by ${calleeId}`);
-  }
-
-  // ── Caller cancels before callee responds ─────────────────────────────────
-  @SubscribeMessage('match:cancelCall')
-  async handleCancelCall(
-    @MessageBody() data: { callId: string },
-  ) {
-    const call = await this.matchmakingService.deletePendingCall(data.callId);
-    if (!call) return;
-
-    // Both parties are free again — caller was locked during the ringing window
-    await this.matchmakingService.markAvailable(call.calleeId);
-    await this.matchmakingService.markAvailable(call.callerId);
-
-    // Dismiss the incoming popup on callee side
-    this.server.to(String(call.calleeId)).emit('match:callCancelled', { callId: data.callId });
-    this.logger.log(`Call ${data.callId} cancelled by caller`);
   }
 
   // ── After a call ends — both users go back to available ───────────────────

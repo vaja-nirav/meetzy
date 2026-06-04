@@ -4,10 +4,8 @@ import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 
 const AVAILABLE_KEY  = 'meetzy:available';          // SET  — free users (userId strings)
-const CALL_PREFIX    = 'meetzy:call:';               // STRING — pending call data
 const ROOM_PREFIX    = 'meetzy:room:';               // HASH  — active room
 const USER_ROOM_KEY  = 'meetzy:user:room:';          // STRING — userId → roomId
-const CALL_TTL       = 30;                           // seconds — auto-expire unanswered calls
 const ROOM_TTL       = 86_400;                       // 24 hours
 
 // Atomically picks a random member from the set (excluding one id) and removes it.
@@ -135,32 +133,6 @@ export class MatchmakingService {
     if (present === 0) return { status: 'aborted' };
     if (!pick) return { status: 'none' };
     return { status: 'matched', calleeId: Number(pick) };
-  }
-
-  // ── Pending calls (ringing state) ──────────────────────────────────────────
-
-  async savePendingCall(callId: string, callerId: number, calleeId: number): Promise<void> {
-    await this.redis.setex(
-      `${CALL_PREFIX}${callId}`,
-      CALL_TTL,
-      JSON.stringify({ callerId, calleeId }),
-    );
-    // Lock both parties for the full ringing window — callee was already removed by
-    // findRandomAvailableUser (Lua), this SREM is a safe no-op; caller is newly locked.
-    await this.markUnavailable(calleeId);
-    await this.markUnavailable(callerId);
-  }
-
-  async getPendingCall(callId: string): Promise<{ callerId: number; calleeId: number } | null> {
-    const raw = await this.redis.get(`${CALL_PREFIX}${callId}`);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  }
-
-  async deletePendingCall(callId: string): Promise<{ callerId: number; calleeId: number } | null> {
-    const call = await this.getPendingCall(callId);
-    if (call) await this.redis.del(`${CALL_PREFIX}${callId}`);
-    return call;
   }
 
   // ── Rooms ──────────────────────────────────────────────────────────────────
