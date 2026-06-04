@@ -418,6 +418,11 @@ export class AdminService {
       .where('c.endedAt IS NOT NULL')
       .getRawOne<{ total: string; avg: string | null }>();
 
+    // Calls started today (matches the dashboard's "Calls Today").
+    const today = await this.calls.count({
+      where: { startedAt: MoreThanOrEqual(this.startOfDay()) },
+    });
+
     return {
       calls,
       total,
@@ -425,6 +430,7 @@ export class AdminService {
       stats: {
         total: Number(statsRaw?.total || 0),
         avgDuration: Math.round(Number(statsRaw?.avg || 0)),
+        today,
       },
     };
   }
