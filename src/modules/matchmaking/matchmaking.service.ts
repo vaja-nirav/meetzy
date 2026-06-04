@@ -4,6 +4,7 @@ import Redis from 'ioredis';
 import { v4 as uuidv4 } from 'uuid';
 
 const AVAILABLE_KEY  = 'meetzy:available';          // SET  — free users (userId strings)
+const GENDER_KEY     = 'meetzy:user:gender';         // HASH  — userId → gender (for filtering)
 const ROOM_PREFIX    = 'meetzy:room:';               // HASH  — active room
 const USER_ROOM_KEY  = 'meetzy:user:room:';          // STRING — userId → roomId
 const ROOM_TTL       = 86_400;                       // 24 hours
@@ -32,16 +33,19 @@ return pick
 
 // Atomically pair a caller with a random available user — caller-removal + callee-pick
 // happen in ONE Redis script, so two users pressing "Start" at the same instant can
-// never double-book or grab each other.
-//   ARGV[1] = caller id, ARGV[2] = skip id ('' = none), ARGV[3] = random seed
+// never double-book or grab each other. Optionally filters candidates by gender.
+//   KEYS[1] = available set, KEYS[2] = gender hash (userId → gender)
+//   ARGV[1] = caller id, ARGV[2] = skip id ('' = none), ARGV[3] = random seed,
+//   ARGV[4] = gender filter ('all' = any, otherwise 'male'/'female'/'other')
 // Returns [present, pickedId]:
 //   {0, ''}     caller was already taken by another matcher  → abort
-//   {1, ''}     caller is free but nobody else is available  → caller re-pooled
+//   {1, ''}     caller is free but nobody (of that gender) is available → caller re-pooled
 //   {1, <id>}   matched: caller + picked are both removed atomically
 const PICK_PAIR_SCRIPT = `
 local caller = ARGV[1]
 local skip   = ARGV[2]
 local seed   = tonumber(ARGV[3])
+local filter = ARGV[4]
 
 local present = redis.call('SREM', KEYS[1], caller)
 if present == 0 then
@@ -52,10 +56,17 @@ local members = redis.call('SMEMBERS', KEYS[1])
 local candidates = {}
 local skipped = nil
 for _, v in ipairs(members) do
-  if v == skip then
-    skipped = v
-  else
-    table.insert(candidates, v)
+  local matches = true
+  if filter ~= 'all' and filter ~= '' then
+    local g = redis.call('HGET', KEYS[2], v)
+    if g ~= filter then matches = false end
+  end
+  if matches then
+    if v == skip then
+      skipped = v
+    else
+      table.insert(candidates, v)
+    end
   end
 end
 
@@ -94,6 +105,16 @@ export class MatchmakingService {
     return (await this.redis.sismember(AVAILABLE_KEY, String(userId))) === 1;
   }
 
+  // ── Gender lookup (used to filter matches by gender) ───────────────────────
+
+  async setGender(userId: number, gender?: string): Promise<void> {
+    await this.redis.hset(GENDER_KEY, String(userId), gender || 'other');
+  }
+
+  async clearGender(userId: number): Promise<void> {
+    await this.redis.hdel(GENDER_KEY, String(userId));
+  }
+
   // Atomically picks a random available user (excluding caller) and removes them from
   // the pool in one Redis round-trip — prevents two callers picking the same person.
   async findRandomAvailableUser(excludeUserId: number): Promise<number | null> {
@@ -117,15 +138,19 @@ export class MatchmakingService {
    */
   async pickPair(
     callerId: number,
+    filterGender?: string,
     skipId?: number,
   ): Promise<{ status: 'matched' | 'none' | 'aborted'; calleeId?: number }> {
+    const filter = filterGender && filterGender !== 'all' ? String(filterGender) : 'all';
     const res = (await this.redis.eval(
       PICK_PAIR_SCRIPT,
-      1,
+      2,
       AVAILABLE_KEY,
+      GENDER_KEY,
       String(callerId),
       skipId != null ? String(skipId) : '',
       String(Math.floor(Math.random() * 1_000_000)),
+      filter,
     )) as [number | string, string];
 
     const present = Number(res[0]);

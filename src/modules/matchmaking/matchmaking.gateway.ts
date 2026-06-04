@@ -5,6 +5,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   ConnectedSocket,
+  MessageBody,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
@@ -37,13 +38,19 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
       const payload = this.jwtService.verify(token, {
         secret: this.configService.get<string>('JWT_SECRET', 'change_me'),
       });
-      client.data.userId = Number(payload.sub);
+      const userId = Number(payload.sub);
+      client.data.userId = userId;
       client.data.isVip  = payload.isVip ?? false;
 
-      await client.join(String(payload.sub));
-      await this.usersService.setOnlineStatus(Number(payload.sub), true);
-      await this.matchmakingService.markAvailable(Number(payload.sub));
-      this.logger.log(`Connected & available: ${payload.sub}`);
+      // Load the user's gender so matches can be filtered by it.
+      const user = await this.usersService.findById(userId);
+      client.data.gender = user?.gender ?? 'other';
+
+      await client.join(String(userId));
+      await this.usersService.setOnlineStatus(userId, true);
+      await this.matchmakingService.setGender(userId, client.data.gender);
+      await this.matchmakingService.markAvailable(userId);
+      this.logger.log(`Connected & available: ${userId} (${client.data.gender})`);
     } catch {
       client.emit('error', { message: 'Unauthorized' });
       client.disconnect();
@@ -54,8 +61,9 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
     if (!client.data.userId) return;
     const userId = client.data.userId as number;
 
-    // Remove from available pool
+    // Remove from available pool + gender lookup
     await this.matchmakingService.markUnavailable(userId);
+    await this.matchmakingService.clearGender(userId);
 
     // If they were in a call, close the room and notify partner
     const roomId = await this.matchmakingService.getUserRoom(userId);
@@ -82,9 +90,13 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
   }
 
   // ── Caller clicks "Start" → instantly connect to a random active+free user ──
+  // payload: { gender?: 'all' | 'female' | 'male' } — the selected filter chip.
   @SubscribeMessage('match:findUser')
-  async handleFindUser(@ConnectedSocket() client: Socket) {
-    await this.autoConnect(client);
+  async handleFindUser(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data?: { gender?: string },
+  ) {
+    await this.autoConnect(client, { filterGender: data?.gender });
   }
 
   /**
@@ -93,9 +105,14 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
    * script (see MatchmakingService.pickPair), so two users pressing "Start" at the
    * same instant can never double-book or grab each other.
    *
-   * @param skipId  user id to avoid re-matching (the partner just swiped away from)
+   * @param opts.filterGender  'all' | 'female' | 'male' — only match this gender ('all' = any)
+   * @param opts.skipId        user id to avoid re-matching (the partner just swiped away from)
    */
-  private async autoConnect(client: Socket, skipId?: number): Promise<void> {
+  private async autoConnect(
+    client: Socket,
+    opts: { filterGender?: string; skipId?: number } = {},
+  ): Promise<void> {
+    const { filterGender, skipId } = opts;
     const callerId = client.data.userId as number;
     if (!callerId) return;
 
@@ -107,7 +124,7 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
 
     // Retry only to skip ghost entries (crashed clients still lingering in the pool).
     for (let attempt = 0; attempt < 3; attempt++) {
-      const { status, calleeId } = await this.matchmakingService.pickPair(callerId, skipId);
+      const { status, calleeId } = await this.matchmakingService.pickPair(callerId, filterGender, skipId);
 
       // Someone grabbed this caller at the same instant — they'll receive match:matched.
       if (status === 'aborted') return;
@@ -175,8 +192,12 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
   }
 
   // ── Swipe: end current call and instantly auto-connect to the next user ─────
+  // payload: { gender?: 'all' | 'female' | 'male' } — keep the same filter on swipe.
   @SubscribeMessage('match:next')
-  async handleNext(@ConnectedSocket() client: Socket) {
+  async handleNext(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data?: { gender?: string },
+  ) {
     const userId = client.data.userId as number;
     if (!userId) return;
 
@@ -196,7 +217,7 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
 
     // Swiping user is now free — auto-connect to a new random partner immediately
     await this.matchmakingService.markAvailable(userId);
-    await this.autoConnect(client, skipId);
+    await this.autoConnect(client, { filterGender: data?.gender, skipId });
   }
 
   private getIceServers() {
