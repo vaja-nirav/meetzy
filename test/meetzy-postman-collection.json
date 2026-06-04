@@ -1006,7 +1006,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"user_name\": \"Nikku\",\n  \"age\": 22,\n  \"blue_tick\": true,\n  \"country_id\": 75,\n  \"about_me\": \"Coffee & late-night convos\",\n  \"languages\": [\n    \"Hindi\",\n    \"English\"\n  ],\n  \"cover_images\": [\n    \"https://randomuser.me/api/portraits/women/1.jpg\",\n    \"https://randomuser.me/api/portraits/women/2.jpg\"\n  ],\n  \"order\": 0\n}",
+              "raw": "{\n  \"user_name\": \"Nikku\",\n  \"age\": 22,\n  \"blue_tick\": true,\n  \"country_id\": 75,\n  \"about_me\": \"Coffee & late-night convos\",\n  \"languages\": [\n    \"Hindi\",\n    \"English\"\n  ],\n  \"cover_images\": [\n    \"https://randomuser.me/api/portraits/women/1.jpg\"\n  ],\n  \"feed\": \"popular\",\n  \"order\": 0\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1047,7 +1047,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"age\": 23,\n  \"blue_tick\": false,\n  \"languages\": [\n    \"Hindi\"\n  ]\n}",
+              "raw": "{\n  \"age\": 23,\n  \"blue_tick\": false,\n  \"languages\": [\n    \"Hindi\"\n  ],\n  \"feed\": \"new\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1182,21 +1182,29 @@
           }
         },
         {
-          "name": "Get Active People (Public)",
+          "name": "Get People (Public)",
           "request": {
             "method": "GET",
             "header": [],
             "auth": {
               "type": "noauth"
             },
+            "description": "Public People feed. Change ?tab to popular (default) or new. Also supports page & limit.",
             "url": {
-              "raw": "{{baseUrl}}/app/people",
+              "raw": "{{baseUrl}}/app/people?tab=popular",
               "host": [
                 "{{baseUrl}}"
               ],
               "path": [
                 "app",
                 "people"
+              ],
+              "query": [
+                {
+                  "key": "tab",
+                  "value": "popular",
+                  "description": "popular | new"
+                }
               ]
             }
           }

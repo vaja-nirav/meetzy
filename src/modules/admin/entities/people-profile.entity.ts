@@ -13,6 +13,12 @@ export enum ProfileStatus {
   INACTIVE = 'inactive',
 }
 
+// Which tab the profile shows under on the app's People page.
+export enum ProfileFeed {
+  POPULAR = 'popular',
+  NEW = 'new',
+}
+
 /**
  * Admin-managed fake display profiles shown on the app's "People / Popular" page.
  * Not real users. Admin controls visibility via `status`.
@@ -52,6 +58,10 @@ export class PeopleProfile {
 
   @Column({ type: 'enum', enum: ProfileStatus, default: ProfileStatus.ACTIVE })
   status: ProfileStatus;
+
+  // Which People-page tab this profile appears under (admin-chosen).
+  @Column({ type: 'enum', enum: ProfileFeed, default: ProfileFeed.POPULAR })
+  feed: ProfileFeed;
 
   @Column({ type: 'int', default: 0 })
   order: number;

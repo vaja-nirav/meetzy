@@ -9,6 +9,7 @@ import { Repository, Like } from 'typeorm';
 import {
   PeopleProfile,
   ProfileStatus,
+  ProfileFeed,
 } from './entities/people-profile.entity';
 import { Country } from '../countries/entities/country.entity';
 
@@ -82,6 +83,13 @@ export class PeopleService {
     return value;
   }
 
+  private assertFeed(value: any): ProfileFeed {
+    if (!Object.values(ProfileFeed).includes(value)) {
+      throw new BadRequestException('Invalid feed value (use "popular" or "new")');
+    }
+    return value;
+  }
+
   private validateCovers(images: string[]): void {
     if (images.length > MAX_COVER_IMAGES) {
       throw new BadRequestException(`Maximum ${MAX_COVER_IMAGES} cover images allowed`);
@@ -118,6 +126,7 @@ export class PeopleService {
       languages: e.languages || [],
       cover_images: (e.coverImages || []).map((u) => this.img(u)),
       status: e.status,
+      feed: e.feed,
       order: e.order,
       created_at: e.createdAt,
       updated_at: e.updatedAt,
@@ -125,7 +134,10 @@ export class PeopleService {
   }
 
   // Public (app) shape — no status / timestamps leaked.
+  // `is_new` flags profiles added in the last 7 days (for the "NEW" badge on cards).
   private toPublic(e: PeopleProfile) {
+    const NEW_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+    const isNew = e.createdAt ? Date.now() - new Date(e.createdAt).getTime() < NEW_WINDOW_MS : false;
     return {
       id: e.id,
       user_name: e.userName,
@@ -137,6 +149,8 @@ export class PeopleService {
       about_me: e.aboutMe,
       languages: e.languages || [],
       cover_images: (e.coverImages || []).map((u) => this.img(u)),
+      feed: e.feed,
+      is_new: isNew,
       order: e.order,
     };
   }
@@ -155,6 +169,8 @@ export class PeopleService {
     if (status && status !== 'all') where.status = this.assertStatus(status);
     const countryId = query?.country_id ?? query?.countryId;
     if (countryId) where.countryId = Number(countryId);
+    const feed = query?.feed;
+    if (feed && feed !== 'all') where.feed = this.assertFeed(feed);
     if (query?.search) where.userName = Like(`%${query.search}%`);
 
     const [rows, total] = await this.repo.findAndCount({
@@ -164,17 +180,19 @@ export class PeopleService {
       take: limit,
     });
 
-    const [statTotal, active, inactive, blueTick] = await Promise.all([
+    const [statTotal, active, inactive, blueTick, popular, newCount] = await Promise.all([
       this.repo.count(),
       this.repo.count({ where: { status: ProfileStatus.ACTIVE } }),
       this.repo.count({ where: { status: ProfileStatus.INACTIVE } }),
       this.repo.count({ where: { blueTick: true } }),
+      this.repo.count({ where: { feed: ProfileFeed.POPULAR } }),
+      this.repo.count({ where: { feed: ProfileFeed.NEW } }),
     ]);
 
     return {
       success: true,
       data: rows.map((e) => this.toResponse(e)),
-      stats: { total: statTotal, active, inactive, blue_tick: blueTick },
+      stats: { total: statTotal, active, inactive, blue_tick: blueTick, popular, new: newCount },
       pagination: {
         total,
         page,
@@ -195,6 +213,8 @@ export class PeopleService {
     const coverImages = this.parseArray(this.pick(data, 'cover_images', 'coverImages'));
     const statusRaw = this.pick(data, 'status', 'status');
     const status = statusRaw ? this.assertStatus(statusRaw) : ProfileStatus.ACTIVE;
+    const feedRaw = this.pick(data, 'feed', 'feed');
+    const feed = feedRaw ? this.assertFeed(feedRaw) : ProfileFeed.POPULAR;
     const orderRaw = this.pick(data, 'order', 'order');
 
     if (!userName || !String(userName).trim()) {
@@ -218,6 +238,7 @@ export class PeopleService {
       languages,
       coverImages,
       status,
+      feed,
       order: Number.isFinite(Number(orderRaw)) ? Number(orderRaw) : 0,
     });
     const saved = await this.repo.save(entry);
@@ -277,6 +298,9 @@ export class PeopleService {
     const status = this.pick(data, 'status', 'status');
     if (status !== undefined) entry.status = this.assertStatus(status);
 
+    const feed = this.pick(data, 'feed', 'feed');
+    if (feed !== undefined) entry.feed = this.assertFeed(feed);
+
     const order = this.pick(data, 'order', 'order');
     if (order !== undefined && Number.isFinite(Number(order))) entry.order = Number(order);
 
@@ -317,8 +341,19 @@ export class PeopleService {
     const page = Math.max(1, Number(query?.page) || 1);
     const limit = Math.min(50, Math.max(1, Number(query?.limit) || 20));
 
+    // Tab filter for the People page — filters by the admin-chosen `feed`:
+    //   ?tab=popular → only profiles marked "popular"
+    //   ?tab=new     → only profiles marked "new"
+    //   (no tab)     → all active profiles
+    const where: any = { status: ProfileStatus.ACTIVE };
+    let tab: string | null = null;
+    if (query?.tab === 'popular' || query?.tab === 'new') {
+      tab = query.tab;
+      where.feed = tab;
+    }
+
     const [rows, total] = await this.repo.findAndCount({
-      where: { status: ProfileStatus.ACTIVE },
+      where,
       order: { order: 'ASC', createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -326,6 +361,7 @@ export class PeopleService {
 
     return {
       success: true,
+      tab,
       data: rows.map((e) => this.toPublic(e)),
       pagination: {
         total,
