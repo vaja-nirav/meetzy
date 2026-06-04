@@ -53,6 +53,20 @@ export class MosaicService {
     return !(s === 'false' || s === '0' || s === 'no');
   }
 
+  // Map a LoginMosaic entity (camelCase props) to the snake_case API shape.
+  private toResponse(e: LoginMosaic) {
+    return {
+      id: e.id,
+      photo_url: e.photoUrl,
+      gender: e.gender,
+      status: e.status,
+      show_online_dot: e.showOnlineDot,
+      order: e.order,
+      created_at: e.createdAt,
+      updated_at: e.updatedAt,
+    };
+  }
+
   // ── GET /admin/mosaic ───────────────────────────────────────────────────
   async getAll(query: any) {
     const page = Math.max(1, Number(query?.page) || 1);
@@ -84,15 +98,13 @@ export class MosaicService {
 
     return {
       success: true,
-      data: {
-        entries,
-        stats: { total: statTotal, active, inactive, male, female },
-        pagination: {
-          total,
-          page,
-          limit,
-          totalPages: Math.ceil(total / limit) || 0,
-        },
+      data: entries.map((e) => this.toResponse(e)),
+      stats: { total: statTotal, active, inactive, male, female },
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit) || 0,
       },
     };
   }
@@ -123,7 +135,7 @@ export class MosaicService {
     return {
       success: true,
       message: 'Mosaic entry created successfully',
-      data: saved,
+      data: this.toResponse(saved),
     };
   }
 
@@ -152,7 +164,7 @@ export class MosaicService {
     return {
       success: true,
       message: 'Mosaic entry updated successfully',
-      data: saved,
+      data: this.toResponse(saved),
     };
   }
 
@@ -191,9 +203,9 @@ export class MosaicService {
       data: {
         entries: entries.map((e) => ({
           id: e.id,
-          photoUrl: e.photoUrl,
+          photo_url: e.photoUrl,
           gender: e.gender,
-          showOnlineDot: e.showOnlineDot,
+          show_online_dot: e.showOnlineDot,
           order: e.order,
         })),
         total: entries.length,

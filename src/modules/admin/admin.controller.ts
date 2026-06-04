@@ -8,7 +8,9 @@ import {
   Delete,
   Param,
   Query,
+  UseInterceptors,
 } from '@nestjs/common';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { AdminService } from './admin.service';
 import { MosaicService } from './mosaic.service';
 import { AdminGuard } from './guards/admin.guard';
@@ -22,6 +24,7 @@ export class AdminController {
 
   // PUBLIC — no guard on login
   @Post('login')
+  @UseInterceptors(AnyFilesInterceptor())
   login(@Body() body: any) {
     return this.adminService.login(body?.email, body?.password);
   }
@@ -142,7 +145,7 @@ export class AdminController {
   }
 
   // ── LOGIN MOSAIC CRUD ─────────────────────────────────────────────────────
-  @UseGuards(AdminGuard)
+  // PUBLIC — any user (e.g. the Flutter app) can read mosaic entries without a token
   @Get('mosaic')
   getMosaic(@Query() query: any) {
     return this.mosaicService.getAll(query);

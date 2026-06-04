@@ -11,7 +11,6 @@ import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { v4 as uuidv4 } from 'uuid';
 import { MatchmakingService } from './matchmaking.service';
 import { UsersService } from '../users/users.service';
 
@@ -83,52 +82,86 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
     this.logger.log(`Disconnected: ${userId}`);
   }
 
-  // ── STEP 1: Caller clicks "Find Match" ─────────────────────────────────────
+  // ── Caller clicks "Start" → instantly connect to a random active+free user ──
   @SubscribeMessage('match:findUser')
   async handleFindUser(@ConnectedSocket() client: Socket) {
+    await this.autoConnect(client);
+  }
+
+  /**
+   * Instantly pair the caller with a random active + free user and connect BOTH —
+   * no accept/decline step. Concurrency-safe: the pairing is one atomic Redis
+   * script (see MatchmakingService.pickPair), so two users pressing "Start" at the
+   * same instant can never double-book or grab each other.
+   *
+   * @param skipId  user id to avoid re-matching (the partner just swiped away from)
+   */
+  private async autoConnect(client: Socket, skipId?: number): Promise<void> {
     const callerId = client.data.userId as number;
     if (!callerId) return;
 
-    // Make sure caller themselves is not already in a call
-    const existingRoom = await this.matchmakingService.getUserRoom(callerId);
-    if (existingRoom) {
+    // Already in a call? ignore.
+    if (await this.matchmakingService.getUserRoom(callerId)) {
       client.emit('match:error', { message: 'You are already in a call' });
       return;
     }
 
-    // Pick a random available user
-    const calleeId = await this.matchmakingService.findRandomAvailableUser(callerId);
-    if (!calleeId) {
-      client.emit('match:noUsersAvailable', {
-        message: 'No users are available right now. Try again in a moment.',
+    // Retry only to skip ghost entries (crashed clients still lingering in the pool).
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { status, calleeId } = await this.matchmakingService.pickPair(callerId, skipId);
+
+      // Someone grabbed this caller at the same instant — they'll receive match:matched.
+      if (status === 'aborted') return;
+
+      // Nobody free right now — caller stays in the pool ("searching") and auto-connects later.
+      if (status === 'none' || !calleeId) {
+        client.emit('match:noUsersAvailable', {
+          message: 'No users are available right now. Searching…',
+        });
+        return;
+      }
+
+      // Confirm the picked user is actually still connected (not a stale pool entry).
+      const calleeSockets = await this.server.in(String(calleeId)).fetchSockets();
+      if (calleeSockets.length === 0) {
+        await this.matchmakingService.markUnavailable(calleeId); // drop the ghost
+        await this.matchmakingService.markAvailable(callerId);   // re-pool caller, try again
+        continue;
+      }
+
+      // Final guard: neither side should already be in a room.
+      const [callerRoom, calleeRoom] = await Promise.all([
+        this.matchmakingService.getUserRoom(callerId),
+        this.matchmakingService.getUserRoom(calleeId),
+      ]);
+      if (callerRoom || calleeRoom) {
+        if (!callerRoom) await this.matchmakingService.markAvailable(callerId);
+        if (!calleeRoom) await this.matchmakingService.markAvailable(calleeId);
+        return;
+      }
+
+      // Create the room and connect BOTH immediately — no acceptance required.
+      const roomId = await this.matchmakingService.createRoom(callerId, calleeId);
+      const iceServers = this.getIceServers();
+
+      this.server.to(String(callerId)).emit('match:matched', {
+        roomId,
+        partnerId: calleeId,
+        iceServers,
       });
+      this.server.to(String(calleeId)).emit('match:matched', {
+        roomId,
+        partnerId: callerId,
+        iceServers,
+      });
+      this.logger.log(`Auto-connected ${callerId} ↔ ${calleeId} — room ${roomId}`);
       return;
     }
 
-    // Load caller profile to show in the popup
-    const caller = await this.usersService.findById(callerId);
-    if (!caller) return;
-
-    // Create pending call record (30s TTL) + lock callee as unavailable
-    const callId = uuidv4();
-    await this.matchmakingService.savePendingCall(callId, callerId, calleeId);
-
-    // Tell callee: show incoming call popup
-    this.server.to(String(calleeId)).emit('match:incomingCall', {
-      callId,
-      caller: {
-        id:          caller.id,
-        displayName: caller.displayName,
-        photoUrl:    caller.photoUrl,
-        bio:         caller.bio,
-        gender:      caller.gender,
-        country:     caller.country,
-      },
+    // Only ghosts found across all attempts — stay searching.
+    client.emit('match:noUsersAvailable', {
+      message: 'No users are available right now. Searching…',
     });
-
-    // Tell caller: it's ringing
-    client.emit('match:calling', { callId, calleeId });
-    this.logger.log(`User ${callerId} is calling ${calleeId} — callId: ${callId}`);
   }
 
   // ── STEP 2a: Callee clicks "Connect" ───────────────────────────────────────
@@ -212,17 +245,19 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
     }
   }
 
-  // ── Swipe: end current call and immediately find next user ─────────────────
+  // ── Swipe: end current call and instantly auto-connect to the next user ─────
   @SubscribeMessage('match:next')
   async handleNext(@ConnectedSocket() client: Socket) {
     const userId = client.data.userId as number;
     if (!userId) return;
 
+    let skipId: number | undefined;
     const roomId = await this.matchmakingService.getUserRoom(userId);
     if (roomId) {
       const room = await this.matchmakingService.getRoom(roomId);
       if (room) {
         const otherId = room.userAId === userId ? room.userBId : room.userAId;
+        skipId = otherId; // avoid bouncing straight back to the partner just left
         // Skipped user goes back to available
         this.server.to(String(otherId)).emit('match:partnerLeft', { roomId });
         await this.matchmakingService.markAvailable(otherId);
@@ -230,9 +265,9 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
       await this.matchmakingService.closeRoom(roomId);
     }
 
-    // Swiping user is now free — find next immediately
+    // Swiping user is now free — auto-connect to a new random partner immediately
     await this.matchmakingService.markAvailable(userId);
-    await this.handleFindUser(client);
+    await this.autoConnect(client, skipId);
   }
 
   private getIceServers() {

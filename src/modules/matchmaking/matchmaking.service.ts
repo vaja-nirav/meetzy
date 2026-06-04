@@ -32,6 +32,50 @@ redis.call('SREM', KEYS[1], pick)
 return pick
 `;
 
+// Atomically pair a caller with a random available user — caller-removal + callee-pick
+// happen in ONE Redis script, so two users pressing "Start" at the same instant can
+// never double-book or grab each other.
+//   ARGV[1] = caller id, ARGV[2] = skip id ('' = none), ARGV[3] = random seed
+// Returns [present, pickedId]:
+//   {0, ''}     caller was already taken by another matcher  → abort
+//   {1, ''}     caller is free but nobody else is available  → caller re-pooled
+//   {1, <id>}   matched: caller + picked are both removed atomically
+const PICK_PAIR_SCRIPT = `
+local caller = ARGV[1]
+local skip   = ARGV[2]
+local seed   = tonumber(ARGV[3])
+
+local present = redis.call('SREM', KEYS[1], caller)
+if present == 0 then
+  return {0, ''}
+end
+
+local members = redis.call('SMEMBERS', KEYS[1])
+local candidates = {}
+local skipped = nil
+for _, v in ipairs(members) do
+  if v == skip then
+    skipped = v
+  else
+    table.insert(candidates, v)
+  end
+end
+
+if #candidates == 0 then
+  if skipped ~= nil then
+    redis.call('SREM', KEYS[1], skipped)
+    return {1, skipped}
+  end
+  redis.call('SADD', KEYS[1], caller)
+  return {1, ''}
+end
+
+math.randomseed(seed)
+local pick = candidates[math.random(#candidates)]
+redis.call('SREM', KEYS[1], pick)
+return {1, pick}
+`;
+
 @Injectable()
 export class MatchmakingService {
   private readonly logger = new Logger(MatchmakingService.name);
@@ -64,6 +108,33 @@ export class MatchmakingService {
     ) as string | null;
     if (!result) return null;
     return Number(result);
+  }
+
+  /**
+   * Atomically pair the caller with a random available user (excluding an optional
+   * just-skipped id). One Redis round-trip — no race between concurrent callers.
+   *   - status 'matched'  → calleeId is set; caller + callee removed from the pool
+   *   - status 'none'     → caller is free but nobody else available (caller re-pooled)
+   *   - status 'aborted'  → caller was already grabbed by another matcher this instant
+   */
+  async pickPair(
+    callerId: number,
+    skipId?: number,
+  ): Promise<{ status: 'matched' | 'none' | 'aborted'; calleeId?: number }> {
+    const res = (await this.redis.eval(
+      PICK_PAIR_SCRIPT,
+      1,
+      AVAILABLE_KEY,
+      String(callerId),
+      skipId != null ? String(skipId) : '',
+      String(Math.floor(Math.random() * 1_000_000)),
+    )) as [number | string, string];
+
+    const present = Number(res[0]);
+    const pick = res[1];
+    if (present === 0) return { status: 'aborted' };
+    if (!pick) return { status: 'none' };
+    return { status: 'matched', calleeId: Number(pick) };
   }
 
   // ── Pending calls (ringing state) ──────────────────────────────────────────
